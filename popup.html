@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+	<head>
+	    <meta charset="utf-8">
+		<meta name="description" content="A basic template for a Chrome Extension using Twitter Bootstrap 3">
+		<meta name="author" content="Elliot Hesp">
+		
+		<title>Trust Chrome Extension with Twitter Bootstrap 3.0</title>
+		
+	
+		<!-- Cascading Style Sheets -->
+		<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+		<link href="css/bootstrap.custom.css" rel="stylesheet" media="screen">		
+	</head>
+	
+	<body>
+	
+	<nav class="navbar navbar-default" role="navigation">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="#">Trust</a>
+		</div>
+		<div class="collapse navbar-collapse navbar-ex1-collapse">
+			
+			<ul class="nav navbar-nav">
+				<li class="active">
+					<a href="#">Settings</a>
+				</li>
+			</ul>
+		</div>
+	</nav>
+
+	<section>
+      <form class="form-signin">
+        <h2 class="form-signin-heading">User identity</h2>
+		<p>The user account ID are generated from the Password and the additional seed (optional). There is no need to create an account up front.</p>
+        <label for="inputPassword" >Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <label for="inputEmail">Additional seed - Fill in for better security.</label>
+        <input type="text" id="inputSeed" class="form-control" placeholder="E-mail / Phone / Pin or any text" autofocus>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Generate ID</button>
+      </form>
+	</section>
+
+	
+   <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+	<script src="js/jquery-2.0.3.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+
+	</body>
+</html>

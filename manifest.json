@@ -1,0 +1,64 @@
+{
+  "name": "Trust Chrome Extension",
+  "description": "Proof of concept of Trustchain UI implementation - Currently only for Twitter. This extension is in alpha and do not provide any security features, no effort has been done to protect your password!",
+  "version": "0.1",
+  "manifest_version": 2,
+
+  "icons": {
+    "16": "img/icon16.png",
+    "48": "img/icon48.png",
+    "128": "img/icon128.png"
+  },
+  "browser_action": {
+    "default_icon": {
+      "19": "img/icon48.png",
+      "38": "img/icon48.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "permissions": [ "contextMenus" ],
+  "background": {
+    "persistent": false,
+    "scripts": [ "js/jquery-2.0.3.min.js", "js/background.js" ]
+  },
+  "content_scripts": [
+    {
+      "matches": [ "*://*.reddit.com/*" ],
+      "css": [
+        "lib/jquery-ui-1.12.1.custom/jquery-ui.min.css",
+        "css/jquery-ui-custom.css"
+      ],
+      "js": [
+        "js/jquery-2.0.3.min.js",
+        "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
+        "js/jquery.iframeDialog.js",
+        "js/content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  //"content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
+  "web_accessible_resources": [
+    "modal.html",
+    "img/Mark_Green_Circle.png",
+    "img/Question_blue.png",
+    "img/Close_Red_Icon_Circle.png",
+    "img/alert.png",
+    "js/jquery-2.0.3.min.js",
+    "js/modal.js",
+    "lib/bootstrap/dist/js/bootstrap.min.js",
+    "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_444444_256x240.png",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_555555_256x240.png",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_777620_256x240.png",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_777777_256x240.png",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_cc0000_256x240.png",
+    "lib/jquery-ui-1.12.1.custom/images/ui-icons_ffffff_256x240.png",
+    "lib/bootstrap/dist/css/bootstrap.css",
+    "lib/bootstrap/dist/fonts/glyphicons-halflings-regular.eot",
+    "lib/bootstrap/dist/fonts/glyphicons-halflings-regular.svg",
+    "lib/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf",
+    "lib/bootstrap/dist/fonts/glyphicons-halflings-regular.woff",
+    "lib/bootstrap/dist/fonts/glyphicons-halflings-regular.woff2"
+  ]
+}
