@@ -16,7 +16,10 @@
     },
     "default_popup": "popup.html"
   },
-  "permissions": [ "contextMenus" ],
+  "permissions": [
+    "contextMenus",
+    "storage"
+  ],
   "background": {
     "persistent": false,
     "scripts": [ "js/jquery-2.0.3.min.js", "js/background.js" ]
@@ -32,6 +35,7 @@
         "js/jquery-2.0.3.min.js",
         "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
         "js/jquery.iframeDialog.js",
+        "js/common.js",
         "js/content.js"
       ],
       "run_at": "document_end"
@@ -45,6 +49,7 @@
     "img/Close_Red_Icon_Circle.png",
     "img/alert.png",
     "js/jquery-2.0.3.min.js",
+    "js/common.js",
     "js/modal.js",
     "lib/bootstrap/dist/js/bootstrap.min.js",
     "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",

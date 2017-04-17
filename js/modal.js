@@ -1,3 +1,5 @@
+var settingsController = new SettingsController();
+
 // Onload
 $(function () {
     window.parent.postMessage({ type: "getDialogData" }, "*");
@@ -12,6 +14,10 @@ window.addEventListener("message", function (event) {
 
 // Fill in form
 function OnDataLoad(content) {
-    //var $container = $(content); // Parse the content!
     $("#trustContent").html(content); // Only render the Text part
+
+    settingsController.loadSettings(function (settings) {
+        $('#password').text(settings.password);
+        $('#seed').text(settings.seed);
+    });
 }

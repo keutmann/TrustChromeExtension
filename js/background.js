@@ -4,10 +4,21 @@ chrome.runtime.onInstalled.addListener(function () {
         "title": "Trust",
         "id": "TrustID",
         "type": "normal",
-        "contexts": ["selection", "link"]
-        //"onclick": function (info, tab) {
-        //    chrome.tabs.sendMessage(tabs[0].id, { type: "openModal", content: JSON.stringify(info) });
-        //}
+        "contexts": ["link"]
+    });
+    chrome.contextMenus.create({
+        "title": "Issue",
+        "parentId": "TrustID",
+        "id": "TrustIssueID",
+        "type": "normal",
+        "contexts": ["link"]
+    });
+    chrome.contextMenus.create({
+        "title": "Resolve",
+        "parentId": "TrustID",
+        "id": "TrustResolveID",
+        "type": "normal",
+        "contexts": ["link"]
     });
 });
 
