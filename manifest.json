@@ -35,6 +35,7 @@
         "js/jquery-2.0.3.min.js",
         "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
         "js/jquery.iframeDialog.js",
+        "lib/bitcoinjs/bitcoin.js",
         "js/common.js",
         "js/content.js"
       ],
@@ -51,6 +52,7 @@
     "js/jquery-2.0.3.min.js",
     "js/common.js",
     "js/modal.js",
+    "lib/bitcoinjs/bitcoin.js",
     "lib/bootstrap/dist/js/bootstrap.min.js",
     "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
     "lib/jquery-ui-1.12.1.custom/images/ui-icons_444444_256x240.png",

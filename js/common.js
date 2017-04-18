@@ -32,6 +32,7 @@ function SettingsController()
         var d = tce.BigInteger.fromBuffer(hash)
 
         settings.keyPair = new tce.bitcoin.ECPair(d)
+        return settings.keyPair;
     }
 
     return this;
