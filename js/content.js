@@ -42,7 +42,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
         var trustme =
             '  \r\n' +
             '&nbsp;  \r\n' +
-            '*Trust me [' + username + '](http://tc.xyz/' +
+            '*Trust me [' + username + '](' + items.infoserver +
             '?page=trustme' +
             '&source=reddit' +
             '&id=' + id +
@@ -72,7 +72,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
                         return true;
                     });
 
-                    trustmeDialog($node.find("em a[href*='tc.xyz/?page=trustme']"));
+                    trustmeDialog($node.find("em a[href^='"+ items.infoserver + "'?page=trustme']"));
                 });
             });
         });

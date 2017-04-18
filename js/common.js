@@ -6,6 +6,9 @@ function SettingsController()
             "password": '',
             "seed": '',
             "rememberme": true,
+            "infoserver": "http://trustchain.info",
+            "buildserver": "http://trustchain.info:12701",
+            "graphserver": "http://trustchain.info:12702"
             //"keypair": null
         }
         return settings;

@@ -1,66 +1,86 @@
 ﻿<!doctype html>
 <html>
-	<head>
-	    <meta charset="utf-8">
-		<meta name="description" content="A basic template for a Chrome Extension using Twitter Bootstrap 3">
-		<meta name="author" content="Elliot Hesp">
-		
-		<title>Trust Chrome Extension with Twitter Bootstrap 3.0</title>
-		
-	
-		<!-- Cascading Style Sheets -->
-		<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
-		<link href="css/bootstrap.custom.css" rel="stylesheet" media="screen">		
-	</head>
-	
-	<body>
-	
-	<nav class="navbar navbar-default" role="navigation">
-		<div class="navbar-header">
-			<a class="navbar-brand" href="#">Trust</a>
-		</div>
-		<div class="collapse navbar-collapse navbar-ex1-collapse">
-			
-			<ul class="nav navbar-nav">
-				<li class="active">
-					<a href="#">Settings</a>
-				</li>
-			</ul>
-		</div>
-	</nav>
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="A basic template for a Chrome Extension using Twitter Bootstrap 3">
+    <meta name="author" content="Elliot Hesp">
 
-	<section>
-      <form class="form-signin">
-        <h2 class="form-signin-heading">User identity</h2>
-		<p>The user account ID are generated from the Password and the additional seed (optional). There is no need to create an account up front.</p>
-        <label for="inputPassword" >Password</label>
-        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required autofocus>
-        <label for="inputSeed">Additional seed - Fill in for better security.</label>
-        <input type="text" id="inputSeed" class="form-control" placeholder="E-mail / Phone / Pin or any text">
-        <div class="checkbox">
-          <label>
-            <input id="rememberMe" type="checkbox" value="remember-me"> Remember me
-          </label>
-        </div>
-        <button id="generateIDbtn" class="btn btn-lg btn-primary btn-block" type="button">Generate ID</button>
-      </form>
-        <div id="keyContainer">
-            <p>Address: <span id="address"></span></p>
-            <p>Public key: <span id="publicKey"></span></p>
-            <p>Private key: <span id="privateKey"></span></p>
-            <p>Signature: <span id="signature"></span></p>
-        </div>
-	</section>
+    <title>Trust Chrome Extension with Twitter Bootstrap 3.0</title>
 
-	
-   <!-- Bootstrap core JavaScript
-    ================================================== -->
+
+    <!-- Cascading Style Sheets -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="css/bootstrap.custom.css" rel="stylesheet" media="screen">
+</head>
+
+<body>
+
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">Trust</a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav" data-tabs="tabs">
+                <li class="active"><a href="#usercontainer" data-toggle="tab">User</a></li>
+                <li><a href="#settingscontainer" data-toggle="tab">Settings</a></li>
+                <li><a href="#servercontainer" data-toggle="tab">Server</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section>
+        <form class="form-signin">
+            <div id="my-tab-content" class="tab-content">
+                <div id="usercontainer" class="tab-pane active">
+                    <h2 class="form-signin-heading">User identity</h2>
+                    <p>The user account ID are generated from the Password and the additional seed (optional). There is no need to create an account up front.</p>
+                    <label for="inputPassword">Password</label>
+                    <input type="password" id="inputPassword" class="form-control" placeholder="Password" required autofocus>
+                    <label for="inputSeed">Additional seed - Fill in for better security.</label>
+                    <input type="text" id="inputSeed" class="form-control" placeholder="E-mail / Phone / Pin or any text">
+                    <div class="checkbox">
+                        <label>
+                            <input id="rememberMe" type="checkbox" value="remember-me"> Remember me
+                        </label>
+                    </div>
+                    <div id="keyContainer">
+                        <p>Address: <span id="address"></span></p>
+                        <p>Public key: <span id="publicKey"></span></p>
+                        <p>Private key: <span id="privateKey"></span></p>
+                        <p>Signature: <span id="signature"></span></p>
+                    </div>
+                </div>
+                <div id="settingscontainer" class="tab-pane">
+                    <h2 class="form-signin-heading">Trust settings</h2>
+                    <p>Behavior of rendering of trust - show/hide content</p>
+                </div>
+                <div id="servercontainer" class="tab-pane">
+                    <h2 class="form-signin-heading">Trust servers</h2>
+                    <p>Remote Trust servers</p>
+                    <label for="infoserver">Info server</label>
+                    <input type="url" id="infoserver" class="form-control" placeholder="Info server" value="http://trustchain.info" required autofocus>
+                    <p></p>                    
+                    <label for="buildserver">Build server</label>
+                    <input type="url" id="buildserver" class="form-control" placeholder="Build server" value="http://trustchain.info:12701" required>
+                    <p></p>
+                    <label for="graphserver">Graph server</label>
+                    <input type="url" id="graphserver" class="form-control" placeholder="Graph server" value="http://trustchain.info:12702" required>
+                </div>
+             </div>
+        </form>
+
+        <button id="savebtn" class="btn btn-lg btn-primary btn-block" type="button">Save</button>
+    </section>
+
+
+    <!-- Bootstrap core JavaScript
+     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-	<script src="js/jquery-2.0.3.min.js"></script>
-	<script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery-2.0.3.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
     <script src="js/common.js"></script>
     <script src="js/popup.js"></script>
 
-	</body>
+</body>
 </html>
