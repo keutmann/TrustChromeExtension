@@ -3,7 +3,6 @@ var imageUrl = chrome.extension.getURL("img/Question_blue.png");
 var selectedElement = null;
 var settingsController = new SettingsController();
 
-
 if (window.location.href.indexOf("reddit.com") > -1) {
     var $links = $("a.author");
     $links.each(function () {
@@ -28,7 +27,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
     }
 
     trustmeDialog($("em a[href*='tc.xyz/?page=trustme']"));
-    
+
 
     settingsController.loadSettings(function (items) {
         var keyPair = settingsController.buildKey(items);
@@ -59,41 +58,35 @@ if (window.location.href.indexOf("reddit.com") > -1) {
         });
 
 
-        $("body").on('DOMNodeInserted', "div.child", function (event) {
-            if (event.localName == "form") {
-                if ($(event.target).data("initialized"))
-                    return;
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (!node.childNodes || node.childNodes.length == 0)
+                        return;
 
-                $(event.target).data("initialized", "true");
-                $(event.target).find('div.usertext-buttons button.save').click(function () {
-                    var $area = $(this).closest("form").find("textarea");
-                    $area.val($area.val() + trustme);
-                    return true;
+                    var $node = $(node);
+                    $node.find('div.usertext-buttons button.save').click(function () {
+                        var $area = $(this).closest("form").find("textarea");
+                        $area.css('visibility', 'hidden');
+                        $area.val($area.val() + trustme);
+                        return true;
+                    });
+
+                    trustmeDialog($node.find("em a[href*='tc.xyz/?page=trustme']"));
                 });
-            }
-
-            if (event.target.className == "md") {
-                if ($(event.target).data("initialized"))
-                    return;
-
-                $(event.target).data("initialized", "true");
-                trustmeDialog(event.target.find("em a[href*='tc.xyz/?page=trustme']"));
-            }
+            });
         });
 
-        //$("body").on('DOMNodeInserted', "div.md", function (event) {
-        //    if (!event.localName == "div")
-        //        return;
+        var observerConfig = {
+            attributes: false,
+            childList: true,
+            subtree: true,
+            characterData: false
+        };
 
-        //    if ($(event.target).data("initialized"))
-        //        return;
-
-        //    $(event.target).data("initialized", "true");
-        //    trustmeDialog(event.target.find("em a[href*='tc.xyz/?page=trustme']"));
-        //});
+        var targetNode = document.body;
+        observer.observe(targetNode, observerConfig);
     });
-
-
 }
 
 document.addEventListener('contextmenu', function (e) {
