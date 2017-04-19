@@ -8,10 +8,12 @@
  */
 (function ($) {
     var dialogData = "";
+    var current = null;
 
     $.fn.iframeDialog = function (options) {
         this.each(function () {
             $(this).unbind('click').click(function (e) {
+                current = this;
                 e.preventDefault();
                 var $div = $("<div/>");
                 var $iframe = $('<iframe class="iframeDialog" name="iframeDialog{rnd}" frameborder="0" width="100%" height="100%" marginwidth="0" hspace="0" vspace="0" scrolling="no" allowtransparency="true" />');
@@ -50,6 +52,8 @@
     };
 
     $.fn.openIframeDialog = function (options) {
+        current = this;
+
         var $div = $("<div/>");
         var $iframe = $('<iframe class="iframeDialog" name="iframeDialog{rnd}" frameborder="0" width="100%" height="100%" marginwidth="0" hspace="0" vspace="0" scrolling="no" allowtransparency="true" />');
         if (!options.title) {

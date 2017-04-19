@@ -93,6 +93,13 @@ document.addEventListener('contextmenu', function (e) {
     selectedElement = e.toElement;
 }, false);
 
+window.addEventListener('message', function (event) {
+    if (event.data.type == "close") {
+        $(selectedElement).dialog("close");
+    }
+});
+
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     switch (request.type) {
         case "openModal":
@@ -106,6 +113,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             //console.log(JSON.stringify(selectedElement));
             break;
     }
+
 });
 
 function CreateDialogOptions(content) {
@@ -123,7 +131,13 @@ function CreateDialogOptions(content) {
         height: 'auto',
         buttons: {
             Trust: function () {
-                $(this).dialog("close");
+                var contentWindow = $(this).find("iframe").get(0).contentWindow;
+                if (!contentWindow)
+                    return;
+
+                selectedElement = this;
+                $(this).parent().find(".ui-dialog-buttonset button").prop("disabled", true);
+                contentWindow.postMessage({ type: "Issue" }, "*");
             },
             Cancel: function () {
                 $(this).dialog("close");
