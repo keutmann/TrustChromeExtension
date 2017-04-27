@@ -1,31 +1,111 @@
 ﻿<!doctype html>
 <html>
-	<head>
-	    <meta charset="utf-8">
-		<meta name="description" content="A basic template for a Chrome Extension using Twitter Bootstrap 3">
-		
-		<title>Trust Chrome Extension with Twitter Bootstrap 3.0</title>
-	
-		<link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" media="screen">
-	</head>
-	
-	<body>
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
 
-    <div class="container">
-      <!-- Example row of columns -->
-      <div class="row">
-        <div class="col-md-12">
-          <h2>Heading</h2>
-          <p id="trustContent"></p>
-          <p>Password: <span id="password"></span></p>
-          <p>Seed: <span id="seed"></span></p>
-        </div>
-      </div>
-	  
-	<script src="js/jquery-2.0.3.min.js"></script>
-	<script src="lib/bootstrap/dist/js/bootstrap.min.js"></script>
+    <title>Trust Chrome Extension</title>
+
+    <!--link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" media="screen"> -->
+    <link rel="stylesheet" href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css">
+    <style>
+        body {
+            font-size: 12px;
+            /*margin: 0px;*/
+        }
+
+        h4 {
+            font-size: 12px;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        input[type="radio"] {
+            width: 50px;
+        }
+
+        .formdescription {
+            background-color: #efefef;
+            vertical-align:top;
+            width:200px;
+        }
+        .forminput {
+            white-space: nowrap;
+        }
+        .radio-label {
+                width: 35px;
+        }
+
+        .subject {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <form>
+        <p>The subject to be trusted.</p>
+        <p>ID: <span class="subject" id="subject"></span></p>
+        <table>
+            <!--<tr>
+                <td class="formdescription">
+                    <h4>Subject</h4>
+                </td>
+                <td class="forminput">
+                    <input type="text" name="subject" id="subject" value="" class="text ui-widget-content ui-corner-all">
+                </td>
+            </tr>-->
+            <!--<tr>
+                <td class="formdescription">
+                    <h4>Subject Type</h4>
+                    <p>Identifies the type of the subject.</p>
+                </td>
+                <td class="forminput">
+                    <input type="text" name="subjecttype" id="subjecttype" value="" class="text ui-widget-content ui-corner-all">
+                </td>
+            </tr>
+            <tr>
+                <td class="formdescription">
+                    <h4>Scope</h4>
+                    <p>The scope of the subject.</p>
+                </td>
+                <td class="forminput">
+                    <input type="text" name="scope" id="scope" value="" class="text ui-widget-content ui-corner-all">
+                </td>
+            </tr>-->
+            <tr>
+                <td class="formdescription">
+                    <h4>Trust</h4>
+                    <p>Trust or distrust the subject identity.</p>
+                </td>
+                <td class="forminput" >
+                    <label for="radio-trust" class="radio-label">Trust</label>
+                    <input type="radio" name="radio-trust" id="radio-trust">
+                    <label for="radio-neutral" class="radio-label">Neutral</label>
+                    <input type="radio" name="radio-trust" id="radio-neutral" checked>
+                    <label for="radio-distrust" class="radio-label">Distrust</label>
+                    <input type="radio" name="radio-trust" id="radio-distrust">
+                </td>
+            </tr>
+            <tr>
+                <td class="formdescription">
+                    <h4>Confirm</h4>
+                    <p>To confirm the subject identity or not, without trusting it.</p>
+                </td>
+                <td class="forminput">
+                    <label for="radio-confirm-yes" class="radio-label">Yes</label>
+                    <input type="radio" name="radio-confirm" id="radio-confirm-yes">
+                    <label for="radio-confirm-neutral" class="radio-label">Neutral</label>
+                    <input type="radio" name="radio-confirm" id="radio-confirm-neutral" checked>
+                    <label for="radio-confirm-no" class="radio-label">No</label>
+                    <input type="radio" name="radio-confirm" id="radio-confirm-no">
+                </td>
+            </tr>
+        </table>
+    </form>
+    <script src="js/jquery-2.0.3.min.js"></script>
+    <script src="lib/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
     <script src="js/common.js"></script>
     <script src="js/modal.js"></script>
-
-	</body>
+</body>
 </html>

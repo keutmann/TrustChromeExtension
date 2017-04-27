@@ -26,7 +26,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
         });
     }
 
-    trustmeDialog($("em a[href*='tc.xyz/?page=trustme']"));
+    trustmeDialog($("em a[href*='trust.dance/?page=trustme']"));
 
 
     settingsController.loadSettings(function (items) {
@@ -44,11 +44,12 @@ if (window.location.href.indexOf("reddit.com") > -1) {
             '&nbsp;  \r\n' +
             '*Trust me [' + username + '](' + items.infoserver +
             '?page=trustme' +
-            '&source=reddit' +
+            '&scope=reddit' +
             '&id=' + id +
             '&sig=' + sig +
             '&hash=' + hash +
             '&value=' + username +
+            '&type=identity.person' +
             ' "' + username + '")*';
 
         $('div.usertext-buttons button.save').click(function () {
