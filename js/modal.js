@@ -1,4 +1,5 @@
 var settingsController = new SettingsController();
+var parentData;
 
 // Onload
 $(function () {
@@ -15,18 +16,15 @@ window.addEventListener("message", function (event) {
         OnDataLoad(event.data);
     }
     if (event.data.type == "Issue") {
+        Issue();
         window.parent.postMessage({ type: "close" }, "*");
-        //alert("Issue");
-        //$("#trustContent").html("Issuing a Trust");
-        //setTimeout(function () {
-        //    //alert($("#password").text());
-        //    window.parent.postMessage({ type: "close" }, "*");
-        //}, 1000);
     }
 });
 
+
 // Fill in form
 function OnDataLoad(data) {
+    parentData = data;
     $("#subject").html(data.content); // Only render the Text part
 
     settingsController.loadSettings(function (settings) {
@@ -34,4 +32,9 @@ function OnDataLoad(data) {
         $('#password').text(settings.password);
         $('#seed').text(settings.seed);
     });
+}
+
+
+function Issue() {
+
 }

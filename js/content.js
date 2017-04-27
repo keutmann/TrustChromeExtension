@@ -19,14 +19,14 @@ if (window.location.href.indexOf("reddit.com") > -1) {
 
     function trustmeDialog($trustme) {
         $trustme.each(function () {
-            $(this).iframeDialog(CreateDialogOptions($(this).text()));
+            $(this).iframeDialog(CreateDialogOptions(this.outerHTML));
         });
         $trustme.click(function () {
             return false;
         });
     }
 
-    trustmeDialog($("em a[href*='trust.dance/?page=trustme']"));
+    trustmeDialog($("em a[href*='?page=trustme&scope=reddit']"));
 
 
     settingsController.loadSettings(function (items) {
@@ -45,11 +45,11 @@ if (window.location.href.indexOf("reddit.com") > -1) {
             '*Trust me [' + username + '](' + items.infoserver +
             '?page=trustme' +
             '&scope=reddit' +
+            '&type=identity' +
             '&id=' + id +
             '&sig=' + sig +
             '&hash=' + hash +
             '&value=' + username +
-            '&type=identity.person' +
             ' "' + username + '")*';
 
         $('div.usertext-buttons button.save').click(function () {
@@ -131,7 +131,7 @@ function CreateDialogOptions(content) {
         width: 'auto',
         height: 'auto',
         buttons: {
-            Trust: function () {
+            OK: function () {
                 var contentWindow = $(this).find("iframe").get(0).contentWindow;
                 if (!contentWindow)
                     return;
