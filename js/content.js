@@ -19,6 +19,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
 
     function trustmeDialog($trustme) {
         $trustme.each(function () {
+            var target = ParseTrustMe(this); // this = a href element
             $(this).iframeDialog(CreateDialogOptions(this.outerHTML));
         });
         $trustme.click(function () {
@@ -49,7 +50,6 @@ if (window.location.href.indexOf("reddit.com") > -1) {
             '&id=' + id +
             '&sig=' + sig +
             '&hash=' + hash +
-            '&value=' + username +
             ' "' + username + '")*';
 
         $('div.usertext-buttons button.save').click(function () {
@@ -109,7 +109,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (!content)
                 content = info.linkUrl;
 
-            $(selectedElement).openIframeDialog(CreateDialogOptions(content));
+            var target = CreateTarget(content);
+
+            $(selectedElement).openIframeDialog(CreateDialogOptions(target));
             console.log(request.content);
             //console.log(JSON.stringify(selectedElement));
             break;
@@ -117,11 +119,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 });
 
-function CreateDialogOptions(content) {
+function CreateDialogOptions(target) {
     return {
         /* iframeDialog options */
         //id: 'iframeDialogTest',
-        data: content,
+        data: target,
         url: modalUrl,
         scrolling: 'no',
         /* jquery UI Dialog options */

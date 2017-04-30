@@ -1,5 +1,5 @@
 var settingsController = new SettingsController();
-var parentData;
+var targetData;
 
 // Onload
 $(function () {
@@ -24,7 +24,7 @@ window.addEventListener("message", function (event) {
 
 // Fill in form
 function OnDataLoad(data) {
-    parentData = data;
+    targetData = data;
     $("#subject").html(data.content); // Only render the Text part
 
     settingsController.loadSettings(function (settings) {
@@ -36,5 +36,14 @@ function OnDataLoad(data) {
 
 
 function Issue() {
+    var radioTrustResult = $('input[name="radio-trust"]:checked').val();
+
+    var trustObj = CreateTrust();
+
+    if (targetData.id) { // The target has an id !
+
+    }
+
+    // Issue to content alone!
 
 }
