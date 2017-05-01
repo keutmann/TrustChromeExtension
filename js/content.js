@@ -8,9 +8,9 @@ if (window.location.href.indexOf("reddit.com") > -1) {
     $links.each(function () {
         var $link = $(this);
         var $parent = $link.parent();
-
+        var target = ParseTrustMe(this);
         var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-        $trustthis.iframeDialog(CreateDialogOptions($link.text()));
+        $trustthis.iframeDialog(CreateDialogOptions(target));
         $parent.append($trustthis);
 
         //$parent.css("background-color", "lightgrey");
@@ -20,7 +20,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
     function trustmeDialog($trustme) {
         $trustme.each(function () {
             var target = ParseTrustMe(this); // this = a href element
-            $(this).iframeDialog(CreateDialogOptions(this.outerHTML));
+            $(this).iframeDialog(CreateDialogOptions(target));
         });
         $trustme.click(function () {
             return false;
@@ -32,13 +32,13 @@ if (window.location.href.indexOf("reddit.com") > -1) {
 
     settingsController.loadSettings(function (items) {
         var keyPair = settingsController.buildKey(items);
-
+        
         var username = $("span.user a").text();
-        var id = keyPair.getAddress();
-        var hashBinary = tce.bitcoin.crypto.hash256(username);
-        var ecSig = keyPair.sign(hashBinary);
+        var id = keyPair.getPublicKeyBuffer().toString('HEX');
+        var targetHash = tce.bitcoin.crypto.hash256(username);
+        var ecSig = keyPair.sign(targetHash);
         var sig = ecSig.toDER().toString('HEX');
-        var hash = hashBinary.toString('HEX');
+        var target = targetHash.toString('HEX');
 
         var trustme =
             '  \r\n' +
@@ -49,7 +49,7 @@ if (window.location.href.indexOf("reddit.com") > -1) {
             '&type=identity' +
             '&id=' + id +
             '&sig=' + sig +
-            '&hash=' + hash +
+            '&target=' + target +
             ' "' + username + '")*';
 
         $('div.usertext-buttons button.save').click(function () {
@@ -96,6 +96,7 @@ document.addEventListener('contextmenu', function (e) {
 
 window.addEventListener('message', function (event) {
     if (event.data.type == "close") {
+        console.log(event.data.content);
         $(selectedElement).dialog("close");
     }
 });

@@ -35,6 +35,8 @@ function SettingsController()
         var d = tce.BigInteger.fromBuffer(hash)
         
         settings.keyPair = new tce.bitcoin.ECPair(d)
+        settings.publicKeyHash = tce.bitcoin.crypto.hash160(settings.keyPair.getPublicKeyBuffer());
+
         return settings.keyPair;
     }
 
@@ -44,11 +46,13 @@ function SettingsController()
 function ParseTrustMe(a) {
     if (a instanceof HTMLAnchorElement) {
         var target = CreateTarget(a.text);
-        var pairs = a.search.substring(1).split('&');
-        for (var i = 0; i < pairs.length; i++) {
-            var kv = pairs[i].split('=');
-            var val = decodeURIComponent(kv[1].replace(/\+/g, ' '));
-            q[kv[0].toLowerCase()] = val;
+        if (a.search) {
+            var pairs = a.search.substring(1).split('&');
+            for (var i = 0; i < pairs.length; i++) {
+                var kv = pairs[i].split('=');
+                var val = decodeURIComponent(kv[1].replace(/\+/g, ' '));
+                target[kv[0].toLowerCase()] = val;
+            }
         }
 
         return target;
@@ -63,7 +67,7 @@ function CreateTarget(content) {
         page: undefined,
         id: undefined,
         sig: undefined,
-        hash: undefined,
+        target: undefined,
         type: undefined,
         scope: undefined,
         trust: undefined,
@@ -82,7 +86,7 @@ function Trust() {
     }
     this.issuer = [];
     
-    this.addIssuer = function (issuerId) {
+    this.addIssuer = function (issuerId) { // issuerId = Buffer!
         // The entity that issues the trust to the subject.
         // The issuer property is required and is needed for signing the trust.
         var obj = {
@@ -100,32 +104,7 @@ function Trust() {
         return obj;
     }
 
-    function signIssuer(key) {
-        var buf = new tce.buffer.Buffer();
-        var data = [];
-        data.push(this.id); // Bytes!
-        for(k in this.subject) {
-            var s = this.subject[k];
-            data.push(s.id); // Bytes!
-            data.push(StringToUTF8Array(s.idtype));
-
-            for(var c in s.claim) {
-                if (!s.claim.hasOwnProperty(c)) 
-                    continue;
-
-                data.push(StringToUTF8Array(c.toLowerCase()));
-                data.push(StringToUTF8Array(s.claim[c].toString().toLowerCase()));
-            }
-            data.push(s.cost);
-            data.push(s.activate);
-            data.push(s.expire);
-            data.push(StringToUTF8Array(s.scope));
-        }
-        
-        
-    }
-
-    function addSubject(id, idtype, scope) {
+    function addSubject(subjectId, idtype, scope) {
         var obj = {
             "id": subjectId, // id of the subject, format specified in head->script.
             //"signature": "", // Optional, provide if value of "cost" has to go under 100
@@ -148,16 +127,36 @@ function Trust() {
         return obj;
     }
 
-    return this;
-}
+    function signIssuer(keyPair) {
+        var buf = new tce.buffer.Buffer(1024 * 256); // 256 Kb
+        var offset = 0;
+        offset = this.id.copy(buf, offset, 0, 20); //buf.write(this.id); // Bytes!
 
+        for (k in this.subject) {
+            var s = this.subject[k];
 
-function StringToUTF8Array(str) {
-    var utf8 = unescape(encodeURIComponent(str));
+            offset += s.id.copy(buf, offset, 0, s.id.length); // Bytes!
+            offset += buf.write(s.idtype.toLowerCase(), offset);
 
-    var arr = [];
-    for (var i = 0; i < utf8.length; i++) {
-        arr.push(utf8.charCodeAt(i));
+            for (var c in s.claim) {
+                if (!s.claim.hasOwnProperty(c))
+                    continue;
+
+                offset += buf.write(c.toLowerCase(), offset); // Default UTF8
+                offset += buf.write(s.claim[c].toString().toLowerCase(), offset);
+            }
+            offset = buf.writeInt32LE(s.cost, offset);
+            offset = buf.writeInt32LE(s.activate, offset);
+            offset = buf.writeInt32LE(s.expire, offset);
+            offset += buf.write(s.scope.toLowerCase(), offset);
+        }
+
+        var data = new tce.buffer.Buffer(offset);
+        buf.copy(data, 0, 0, offset);
+        var hash = tce.bitcoin.crypto.hash256(data); // hash = trust id
+
+        this.signature = keyPair.sign(hash).toDER();
     }
-    return arr;
+
+    return this;
 }
