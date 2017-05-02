@@ -212,3 +212,22 @@ tce.buffer.Buffer.prototype.toJSON = function toJSON() {
     return this.toString('base64');
 }
 
+function ResolveTarget(target) {
+    var deferred = $.Deferred();
+    var resolve = undefined;
+
+    var key = (target.id) ? target.id : target.content + target.scope;
+    // cache
+    //var cacheValue = localStorage[key];
+    //if (cacheValue) {
+        //resolve = JSON.parse(cacheValue);
+        //deferred.resolve(resolve);
+    //}
+
+    // Ajax
+    //if (!cacheValue) {
+
+    //}
+    deferred.resolve(resolve);
+    return deferred.promise();
+}

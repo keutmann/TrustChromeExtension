@@ -1,4 +1,4 @@
-//var settingsController = new SettingsController();
+var settingsController = new SettingsController();
 var target;
 var settings; 
 
@@ -31,10 +31,10 @@ function OnDataLoad(data) {
     target = data.content;
     $("#subject").html(target.content); // Only render the Text part
 
-    //settingsController.loadSettings(function (data) {
-    //    settings = data;
-    //    settingsController.buildKey(settings);
-    //});
+    settingsController.loadSettings(function (data) {
+        settings = data;
+        settingsController.buildKey(settings);
+    });
 }
 
 

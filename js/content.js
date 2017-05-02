@@ -9,11 +9,18 @@ if (window.location.href.indexOf("reddit.com") > -1) {
         var $link = $(this);
         var $parent = $link.parent();
         var target = ParseTrustMe(this);
-        var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-        $trustthis.iframeDialog(CreateDialogOptions(target));
-        $parent.append($trustthis);
 
-        //$parent.css("background-color", "lightgrey");
+        ResolveTarget(target).done(function (resolve) {
+            if (resolve) {
+
+                //$parent.css("background-color", "lightgrey");
+            }
+            else {
+                var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
+                $trustthis.iframeDialog(CreateDialogOptions(target));
+                $parent.append($trustthis);
+            }
+        });
     });
 
 
@@ -168,10 +175,8 @@ window.addEventListener('message', function (event) {
                 else
                     alert(textStatus + " : " + errorThrown);
             }).always(function () {
-                //alert("complete");
+                $(selectedElement).dialog("close");
             });
-            
-            $(selectedElement).dialog("close");
         });
     }
 });
