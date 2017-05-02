@@ -35,8 +35,9 @@ if (window.location.href.indexOf("reddit.com") > -1) {
         
         var username = $("span.user a").text();
         var id = keyPair.getPublicKeyBuffer().toString('HEX');
-        var targetHash = tce.bitcoin.crypto.hash256(username);
-        var ecSig = keyPair.sign(targetHash);
+        
+        var targetHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username, 'UTF8'));
+        var ecSig = keyPair.sign(targetHash); // sign needs a sha256
         var sig = ecSig.toDER().toString('HEX');
         var target = targetHash.toString('HEX');
 
@@ -94,23 +95,17 @@ document.addEventListener('contextmenu', function (e) {
     selectedElement = e.toElement;
 }, false);
 
-window.addEventListener('message', function (event) {
-    if (event.data.type == "close") {
-        console.log(event.data.content);
-        $(selectedElement).dialog("close");
-    }
-});
-
-
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     switch (request.type) {
         case "openModal":
             var info = JSON.parse(request.content);
             var content = info.selectionText;
-            if (!content)
+            if (!content) 
                 content = info.linkUrl;
 
             var target = CreateTarget(content);
+            if (!info.selectionText)
+                target.type = "url";
 
             $(selectedElement).openIframeDialog(CreateDialogOptions(target));
             console.log(request.content);
@@ -141,7 +136,7 @@ function CreateDialogOptions(target) {
 
                 selectedElement = this;
                 $(this).parent().find(".ui-dialog-buttonset button").prop("disabled", true);
-                contentWindow.postMessage({ type: "Issue" }, "*");
+                contentWindow.postMessage({ type: "Issue", target: target }, "*");
             },
             Cancel: function () {
                 $(this).dialog("close");
@@ -149,3 +144,34 @@ function CreateDialogOptions(target) {
         }
     }
 }
+
+window.addEventListener('message', function (event) {
+    if (event.data.type == "modalTrustIssue") {
+        settingsController.loadSettings(function (settings) {
+            settingsController.buildKey(settings);
+
+            var trust = BuildTrust(settings, event.data.target);
+            var data = JSON.stringify(trust);
+
+            $.ajax({
+                type: "POST",
+                url: settings.buildserver,
+                data: data,
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json'
+            }).done(function (msg, textStatus, jqXHR) {
+                alert("Trust submitted: " + msg);
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                if (jqXHR.status == 404 || errorThrown == 'Not Found') {
+                    alert('Error 404: Server ' + settings.buildserver +' was not found.');
+                }
+                else
+                    alert(textStatus + " : " + errorThrown);
+            }).always(function () {
+                //alert("complete");
+            });
+            
+            $(selectedElement).dialog("close");
+        });
+    }
+});
