@@ -159,10 +159,10 @@ window.addEventListener('message', function (event) {
 
             var trust = BuildTrust(settings, event.data.target);
             var data = JSON.stringify(trust);
-
+            var rurl = settings.buildserver + '/api/trust/';
             $.ajax({
                 type: "POST",
-                url: settings.buildserver,
+                url: rurl,
                 data: data,
                 contentType: 'application/json; charset=utf-8',
                 dataType: 'json'

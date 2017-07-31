@@ -80,21 +80,16 @@ function CreateTarget(content, type) {
     return obj;
 }
 
-function TrustBuilder() {
+function TrustBuilder(issuerId) {
     // A Trust visualized in json format.
     this.trust = {
         head : {
             "version": "standard 0.1.0", // Specifies the format of the Trust and encodings. Standard format : ver:Major, minor, patch;
             "script": "btc-pkh" // Specifies the id address format and signature algos. btc-pkh is the bitcoin address format.
-        }
-    };
-
-    this.trust.issuer = [];
-    
-    this.addIssuer = function (issuerId) { // issuerId = Buffer!
+        },
         // The entity that issues the trust to the subject.
         // The issuer property is required and is needed for signing the trust.
-        var obj = {
+        issuer: {
             // ID of the issuer, format specified in head->script
             "id": issuerId,
             // Hash of a trust is combined by: head, issuer, subject
@@ -102,13 +97,10 @@ function TrustBuilder() {
             "signature": "",
             // The subject is the target of trust, issued by the issuer!
             "subject": [],
-            
         }
-        this.trust.issuer.push(obj);
-        return obj;
-    }
+    };
 
-    this.addSubject = function(issuer, subjectId, idtype, scope) {
+    this.addSubject = function(subjectId, idtype, scope) {
         var obj = {
             "id": subjectId, // id of the subject, format specified in head->script.
             //"signature": "", // Optional, provide if value of "cost" has to go under 100
@@ -127,27 +119,27 @@ function TrustBuilder() {
             "activate": 0, // When will the trust be active. unixepoch
             "expire": 0, // When will the trust deactivate. unixepoch
         }
-        issuer.subject.push(obj);
+        this.trust.issuer.subject.push(obj);
         return obj;
     }
 
-    this.addSubjectByContent = function(issuer, target, type) {
+    this.addSubjectByContent = function(target, type) {
         var id = tce.bitcoin.crypto.hash160(new tce.buffer.Buffer(target.content, 'UTF8'));
-        var subject = this.addSubject(issuer, id, (type) ? type : target.type, target.scope);
+        var subject = this.addSubject(id, (type) ? type : target.type, target.scope);
         if (target.trust)
-            subject.claim["trust"] = target.trust;
+            subject.claim["trust"] = target.trust.toString(); // Needs to be a string type!
 
         return subject;
     }
 
 
-    this.signIssuer = function(issuer, keyPair) {
+    this.signIssuer = function(keyPair) {
         var buf = new tce.buffer.Buffer(1024 * 256); // 256 Kb
         var offset = 0;
-        offset = issuer.id.copy(buf, offset, 0, issuer.id.length); 
+        offset = this.trust.issuer.id.copy(buf, offset, 0, this.trust.issuer.id.length);
 
-        for (k in issuer.subject) {
-            var s = issuer.subject[k];
+        for (k in this.trust.issuer.subject) {
+            var s = this.trust.issuer.subject[k];
 
             offset += s.id.copy(buf, offset, 0, s.id.length); // Bytes!
             offset += buf.write(s.idtype.toLowerCase(), offset);
@@ -167,9 +159,8 @@ function TrustBuilder() {
 
         var data = new tce.buffer.Buffer(offset);
         buf.copy(data, 0, 0, offset);
-        var hash = tce.bitcoin.crypto.hash256(data); // hash = trust id
-
-        issuer.signature = keyPair.sign(hash).toDER();
+        this.trust.trustid = tce.bitcoin.crypto.hash256(data); 
+        this.trust.issuer.signature = tce.bitcoin.message.sign(keyPair, this.trust.trustid);
     }
 
     return this;
@@ -177,8 +168,7 @@ function TrustBuilder() {
 
 
 function BuildTrust(settings, target) {
-    var trustBuilder = new TrustBuilder();
-    var issuer = trustBuilder.addIssuer(settings.publicKeyHash);
+    var trustBuilder = new TrustBuilder(settings.publicKeyHash);
 
     if (target.id) { // The target has an id !
         var id = new tce.buffer.Buffer(target.id, 'HEX');
@@ -194,17 +184,16 @@ function BuildTrust(settings, target) {
             return;
         }
         // Identity subject
-        var idSubject = trustBuilder.addSubject(issuer, tce.bitcoin.crypto.hash160(id), target.type, target.scope);
+        var idSubject = trustBuilder.addSubject(tce.bitcoin.crypto.hash160(id), target.type, target.scope);
         if (target.trust)
-            idSubject.claim["trust"] = target.trust;
-
+            idSubject.claim["trust"] = target.trust.toString();
         // Name subject
-        trustBuilder.addSubjectByContent(issuer, target, "name");  // Name subject
+        trustBuilder.addSubjectByContent(target, "name");  // Name subject
     }
     else 
-        trustBuilder.addSubjectByContent(issuer, target);  // Default content subject
+        trustBuilder.addSubjectByContent(target);  // Default content subject
 
-    trustBuilder.signIssuer(issuer, settings.keyPair);
+    trustBuilder.signIssuer(settings.keyPair);
     return trustBuilder.trust;
 }
 

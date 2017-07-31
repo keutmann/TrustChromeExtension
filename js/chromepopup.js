@@ -33,6 +33,12 @@ function BindSettings(items) {
     $("#address").text(items.keyPair.getAddress());
     $("#privateKey").text(items.keyPair.toWIF());
     var hash = tce.bitcoin.crypto.hash256("Demo");
-    var sig = items.keyPair.sign(hash);
-    $("#signature").text(sig.toDER().toString('HEX'));
+    //$("#hashValue").text(hash.toString('base64'));
+    //var message = tce.bitcoin.message.magicHash(hash);
+    //$("#message").text(message.toString('base64'));
+    //var pre = new tce.buffer.Buffer('Demo', 'utf8');
+    //$("#prehex").text(pre.toString('hex'));
+    var sig = tce.bitcoin.message.sign(items.keyPair, hash);
+    //var sig = items.keyPair.sign(hash);
+    $("#signature").text(sig.toString('base64'));
 }

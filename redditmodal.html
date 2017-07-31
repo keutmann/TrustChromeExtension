@@ -80,11 +80,22 @@
                 </td>
                 <td class="forminput" >
                     <label for="radio-trust" class="radio-label">Trust</label>
-                    <input type="radio" name="radio-trust" id="radio-trust" value="trust">
+                    <input type="radio" name="radio-trust" id="radio-trust" value="trust" checked>
                     <label for="radio-neutral" class="radio-label">Neutral</label>
-                    <input type="radio" name="radio-trust" id="radio-neutral" value="neutral" checked>
+                    <input type="radio" name="radio-trust" id="radio-neutral" value="neutral">
                     <label for="radio-distrust" class="radio-label">Distrust</label>
                     <input type="radio" name="radio-trust" id="radio-distrust" value="distrust">
+                    <!--<label for="radio-confirm" class="radio-label">Confirm</label>
+                    <input type="radio" name="radio-trust" id="radio-confirm" value="confirm">-->
+                </td>
+            </tr>
+            <tr>
+                <td class="formdescription">
+                    <h4>Comment</h4>
+                    <p>Short text about the trust<br />(max 100 char).</p>
+                </td>
+                <td class="forminput">
+                    <textarea name="comment" id="comment" value="" class="text ui-widget-content ui-corner-all" maxlength="100" rows="3" cols="33"></textarea>
                 </td>
             </tr>
             <!--<tr>
@@ -107,6 +118,6 @@
     <script src="lib/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
     <script src="js/common.js"></script>
-    <script src="js/modal.js"></script>
+    <script src="js/redditmodal.js"></script>
 </body>
 </html>
