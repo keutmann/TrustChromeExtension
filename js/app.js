@@ -1,19 +1,27 @@
-var modalUrl = chrome.extension.getURL("modal.html");
+var modalUrl = chrome.extension.getURL("redditmodal.html");
 var imageUrl = chrome.extension.getURL("img/Question_blue.png");
 var selectedElement = null;
 var settingsController = new SettingsController();
 
 if (window.location.href.indexOf("reddit.com") > -1) {
     var $links = $("a.author");
-    $links.each(function () {
+    $links.slice(0, 1).each(function () {
         var $link = $(this);
         var $parent = $link.parent();
         var target = ParseTrustMe(this);
 
-        ResolveTarget(target).done(function (resolve) {
-            if (resolve) {
-
+        ResolveTarget(target, settingsController).done(function (result) {
+            if (result) {
+                var parser = new QueryParser(result);
+                var id = target.address.toString("base64");
+                var node = parser.FindById(id);
+                if(node && node.claim.trust) { 
+                    $link.css("background-color", "red");
+                }
+                //var jsonString = JSON.stringify(result);
+                //console.log(jsonString);
                 //$parent.css("background-color", "lightgrey");
+
             }
             else {
                 var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
@@ -157,9 +165,9 @@ window.addEventListener('message', function (event) {
         settingsController.loadSettings(function (settings) {
             settingsController.buildKey(settings);
 
-            var trust = BuildTrust(settings, event.data.target);
-            var data = JSON.stringify(trust);
-            var rurl = settings.buildserver + '/api/trust/';
+            var trustpackage = BuildPackage(settings, event.data.target);
+            var data = JSON.stringify(trustpackage);
+            var rurl = settings.graphserver + '/api/trust/';
             $.ajax({
                 type: "POST",
                 url: rurl,
@@ -169,11 +177,7 @@ window.addEventListener('message', function (event) {
             }).done(function (msg, textStatus, jqXHR) {
                 alert("Trust submitted: " + msg);
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                if (jqXHR.status == 404 || errorThrown == 'Not Found') {
-                    alert('Error 404: Server ' + settings.buildserver +' was not found.');
-                }
-                else
-                    alert(textStatus + " : " + errorThrown);
+                TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
             }).always(function () {
                 $(selectedElement).dialog("close");
             });

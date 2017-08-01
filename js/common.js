@@ -44,8 +44,9 @@ function SettingsController()
 }
 
 function ParseTrustMe(a) {
+    var target = null;
     if (a instanceof HTMLAnchorElement) {
-        var target = CreateTarget(a.text);
+        target = CreateTarget(a.text);
         if (a.search) {
             var pairs = a.search.substring(1).split('&');
             for (var i = 0; i < pairs.length; i++) {
@@ -54,11 +55,12 @@ function ParseTrustMe(a) {
                 target[kv[0].toLowerCase()] = val;
             }
         }
-
-        return target;
     }
-    else if(a instanceof String)
-        return CreateTarget(a);
+    else if (a instanceof String) {
+        target = CreateTarget(a);
+    }
+    target.address = GetTargetAddress(target);
+    return target;
 }
 
 function CreateTarget(content, type) {
@@ -171,24 +173,25 @@ function BuildTrust(settings, target) {
     var trustBuilder = new TrustBuilder(settings.publicKeyHash);
 
     if (target.id) { // The target has an id !
-        var id = new tce.buffer.Buffer(target.id, 'HEX');
-        var linkKeyPair = tce.bitcoin.ECPair.fromPublicKeyBuffer(id);
+        var objId = new tce.buffer.Buffer(target.id, 'HEX');
+        var linkKeyPair = tce.bitcoin.ECPair.fromPublicKeyBuffer(objId);
 
-        var sig = new tce.buffer.Buffer(target.sig, 'HEX');
+        var objSig = new tce.buffer.Buffer(target.sig, 'HEX');
         var targetID = new tce.buffer.Buffer(target.target, 'HEX');
-        var sigObj = tce.bitcoin.ECSignature.fromDER(sig);
+        var ecSig = tce.bitcoin.ECSignature.fromDER(objSig);
 
-        if (!linkKeyPair.verify(targetID, sigObj)) {
-            console.log("Invalid signature on id : " + id.toString('HEX'));
-            Alert("Invalid signature on id : " + id.toString('HEX'));
+        if (!linkKeyPair.verify(targetID, ecSig)) {
+            console.log("Invalid signature on id : " + objId.toString('HEX'));
+            Alert("Invalid signature on id : " + objId.toString('HEX'));
             return;
         }
         // Identity subject
-        var idSubject = trustBuilder.addSubject(tce.bitcoin.crypto.hash160(id), target.type, target.scope);
+        var idSubject = trustBuilder.addSubject(tce.bitcoin.crypto.hash160(objId), target.type, target.scope);
         if (target.trust)
             idSubject.claim["trust"] = target.trust.toString();
+
         // Name subject
-        trustBuilder.addSubjectByContent(target, "name");  // Name subject
+        trustBuilder.addSubjectByContent(target, "name");  // Add second subject trust with the name 
     }
     else 
         trustBuilder.addSubjectByContent(target);  // Default content subject
@@ -197,11 +200,47 @@ function BuildTrust(settings, target) {
     return trustBuilder.trust;
 }
 
+function BuildPackage(setttings, target) {
+    var trust = BuildTrust(setttings, target);
+    var obj = {
+        trust: [trust]
+    };
+    return obj;
+}
+
 tce.buffer.Buffer.prototype.toJSON = function toJSON() {
     return this.toString('base64');
 }
 
-function ResolveTarget(target) {
+function GetTargetAddress(target) {
+    var address = (target.id) ? GetAddress(target.id, target.sig, target.target) :
+                GetAddressFromContent(target.content);
+    return address;
+}
+
+function GetAddress(id, sig, target) {
+    var objId = new tce.buffer.Buffer(id, 'HEX');
+    var linkKeyPair = tce.bitcoin.ECPair.fromPublicKeyBuffer(objId);
+
+    var objSig = new tce.buffer.Buffer(sig, 'HEX');
+    var targetID = new tce.buffer.Buffer(target, 'HEX');
+    var ecSig = tce.bitcoin.ECSignature.fromDER(objSig);
+
+    if (!linkKeyPair.verify(targetID, ecSig)) {
+        console.log("Invalid signature on id : " + objId.toString('HEX'));
+        Alert("Invalid signature on id : " + objId.toString('HEX'));
+        return;
+    }
+
+    return tce.bitcoin.crypto.hash160(objId);
+}
+
+function GetAddressFromContent(content) {
+    return tce.bitcoin.crypto.hash160(new tce.buffer.Buffer(content, 'UTF8'));
+}
+
+
+function ResolveTarget(target, settingsController) {
     var deferred = $.Deferred();
     var resolve = undefined;
 
@@ -216,7 +255,102 @@ function ResolveTarget(target) {
     // Ajax
     //if (!cacheValue) {
 
-    //}
-    deferred.resolve(resolve);
+    settingsController.loadSettings(function (settings) {
+        settingsController.buildKey(settings);
+
+        var query = BuildQuery(target, settings);
+        var data = JSON.stringify(query);
+
+        var rurl = settings.graphserver + '/api/query/';
+        $.ajax({
+            type: "POST",
+            url: rurl,
+            data: data,
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json'
+        }).done(function (msg, textStatus, jqXHR) {
+            resolve = msg;
+            deferred.resolve(resolve);
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+            TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
+            deferred.fail();
+        });
+    });
+
     return deferred.promise();
 }
+
+function BuildQuery(target, settings) {
+
+    //var subjectAddress = GetTargetAddress(target);
+
+    var obj = {
+        "issuers": [settings.publicKeyHash],
+        "subjects": [{ id: target.address, type: '' }],
+
+        // Scope is used to filter on trust resolvement. It can be any text
+        "scope": (target.scope) ? target.scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
+
+        // Claim made about the subject. The format is specified by the version property in the header section.
+        "claim": {
+            "trust": true, // Search for trusted subjects.
+            //"confirm": true // Search for subjects that has been confirmed to be real, like a person or corp.
+        },
+
+    }
+    return obj;
+
+}
+
+function TrustServerErrorAlert(jqXHR, textStatus, errorThrown, server) {
+    if (jqXHR.status == 404 || errorThrown == 'Not Found') {
+        var msg = 'Error 404: Server ' + server + ' was not found.';
+        //alert('Error 404: Server ' + server + ' was not found.');
+        console.log(msg);
+    }
+    else
+        alert(textStatus + " : " + errorThrown);
+}
+
+
+function QueryParser(queryResult) {
+    var self = this;
+
+    this.FindById = function(id) {
+        return FindNodeById(id, queryResult);
+    }
+
+    function FindNodeById(id, parentNode) {
+        for (key in parentNode.nodes) {
+            var node = parentNode.nodes[key];
+            if (node.id == id)
+                return node;
+
+            if (node.nodes) {
+                var result = FindNodeById(id, node);
+                if (result)
+                    return result;
+            }
+        }
+        return null;
+    }
+
+    return this;
+}
+
+//{
+//    "TotalNodeCount": 1,
+//	"TotalEdgeCount": 1,
+//	"MatchEdgeCount": 1,
+//	"nodes": [{
+//	    "id": "K2c618oiqO547JJ9bWs6lsKFWCI=",
+//	    "idtype": "content",
+//	    "claim": {
+//	        "trust": true
+//	    },
+//	    "cost": 100,
+//	    "activate": 0,
+//	    "expire": 0,
+//	    "scope": "www.reddit.com"
+//	}]
+//}
