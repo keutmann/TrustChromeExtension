@@ -29,6 +29,8 @@ window.addEventListener("message", function (event) {
 // Fill in form
 function OnDataLoad(data) {
     target = data.content;
+    target.content = target.content.replace('https://www.reddit.com/user/', '');
+
     $("#subject").html(target.content); // Only render the Text part
 
     settingsController.loadSettings(function (data) {

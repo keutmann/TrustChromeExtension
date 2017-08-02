@@ -175,7 +175,7 @@ window.addEventListener('message', function (event) {
                 contentType: 'application/json; charset=utf-8',
                 dataType: 'json'
             }).done(function (msg, textStatus, jqXHR) {
-                alert("Trust submitted: " + msg);
+                //alert("Trust submitted: " + msg);
             }).fail(function (jqXHR, textStatus, errorThrown) {
                 TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
             }).always(function () {

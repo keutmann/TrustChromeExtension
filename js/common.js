@@ -308,8 +308,14 @@ function TrustServerErrorAlert(jqXHR, textStatus, errorThrown, server) {
         //alert('Error 404: Server ' + server + ' was not found.');
         console.log(msg);
     }
-    else
-        alert(textStatus + " : " + errorThrown);
+    else {
+        var msg = textStatus + " : " + errorThrown;
+        if (jqXHR.responseJSON && jqXHR.responseJSON.ExceptionMessage)
+            msg = jqXHR.responseJSON.ExceptionMessage;
+
+        alert(msg);
+    }
+        
 }
 
 
