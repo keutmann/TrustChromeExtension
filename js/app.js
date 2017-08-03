@@ -5,30 +5,38 @@ var settingsController = new SettingsController();
 
 if (window.location.href.indexOf("reddit.com") > -1) {
     var $links = $("a.author");
-    $links.slice(0, 1).each(function () {
-        var $link = $(this);
-        var $parent = $link.parent();
-        var target = ParseTrustMe(this);
+    var target = [];
+    $links.each(function () { //.slice(0, 1)
+        var item = ParseTrustMe(this);
+        item.$link = $(this);
+        target.push(item);
 
-        ResolveTarget(target, settingsController).done(function (result) {
-            if (result) {
-                var parser = new QueryParser(result);
-                var id = target.address.toString("base64");
+    });
+
+    ResolveTarget(target, settingsController).done(function (result) {
+        if (result) {
+            var parser = new QueryParser(result);
+
+            for (var key in target) {
+                var item = target[key];
+
+                var id = item.address.toString("base64");
                 var node = parser.FindById(id);
-                if(node && node.claim.trust) { 
-                    $link.css("background-color", "red");
+                if (node && node.claim.trust) {
+                    item.$link.css("background-color", "green");
                 }
-                //var jsonString = JSON.stringify(result);
-                //console.log(jsonString);
-                //$parent.css("background-color", "lightgrey");
+            }
 
-            }
-            else {
-                var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-                $trustthis.iframeDialog(CreateDialogOptions(target));
-                $parent.append($trustthis);
-            }
-        });
+            //var jsonString = JSON.stringify(result);
+            //console.log(jsonString);
+            //$parent.css("background-color", "lightgrey");
+
+        }
+        else {
+            //var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
+            //$trustthis.iframeDialog(CreateDialogOptions(target));
+            //$parent.append($trustthis);
+        }
     });
 
 

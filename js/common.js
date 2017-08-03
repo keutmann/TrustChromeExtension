@@ -244,7 +244,7 @@ function ResolveTarget(target, settingsController) {
     var deferred = $.Deferred();
     var resolve = undefined;
 
-    var key = (target.id) ? target.id : target.content + target.scope;
+    //var key = (target.id) ? target.id : target.content + target.scope;
     // cache
     //var cacheValue = localStorage[key];
     //if (cacheValue) {
@@ -284,9 +284,16 @@ function BuildQuery(target, settings) {
 
     //var subjectAddress = GetTargetAddress(target);
 
+    var subjects = [];
+    for (var key in target) {
+        var item = target[key];
+        subjects.push({ id: item.address, type: '' });
+    }
+    
+
     var obj = {
         "issuers": [settings.publicKeyHash],
-        "subjects": [{ id: target.address, type: '' }],
+        "subjects": subjects,
 
         // Scope is used to filter on trust resolvement. It can be any text
         "scope": (target.scope) ? target.scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
