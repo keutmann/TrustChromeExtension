@@ -7,8 +7,10 @@ function SettingsController()
             "seed": '',
             "rememberme": true,
             "infoserver": "http://trust.dance",
-            "buildserver": "http://trust.dance:12701",
-            "graphserver": "http://trust.dance:12702"
+            //"buildserver": "http://trust.dance:12701",
+            "graphserver": "http://trust.dance:12702",
+            'trustrender': 'icon',
+            "resultrender": 'warning'
             //"keypair": null
         }
         return settings;
@@ -16,16 +18,16 @@ function SettingsController()
 
     this.saveSettings = function(settings) {
         if (settings.rememberme) {
-            chrome.storage.local.set(settings, function () {
+            chrome.storage.local.set({ usersettings: settings }, function () {
                 console.log('Settings saved');
             });
         }
     }
 
     this.loadSettings = function (cb) {
-        var settings = self.createSettings();
-        chrome.storage.local.get(settings, function (items) {
-            cb(items);
+        chrome.storage.local.get('usersettings', function (result) {
+            var settings = (result.usersettings) ? result.usersettings : self.createSettings();
+            cb(settings);
         });
     }
 
@@ -128,7 +130,7 @@ function TrustBuilder(issuerId) {
     this.addSubjectByContent = function(target, type) {
         var id = tce.bitcoin.crypto.hash160(new tce.buffer.Buffer(target.content, 'UTF8'));
         var subject = this.addSubject(id, (type) ? type : target.type, target.scope);
-        if (target.trust)
+        if (target.trust != undefined)
             subject.claim["trust"] = target.trust.toString(); // Needs to be a string type!
 
         return subject;
@@ -240,7 +242,7 @@ function GetAddressFromContent(content) {
 }
 
 
-function ResolveTarget(target, settingsController) {
+function ResolveTarget(target, settings) {
     var deferred = $.Deferred();
     var resolve = undefined;
 
@@ -255,26 +257,24 @@ function ResolveTarget(target, settingsController) {
     // Ajax
     //if (!cacheValue) {
 
-    settingsController.loadSettings(function (settings) {
-        settingsController.buildKey(settings);
+    settingsController.buildKey(settings);
 
-        var query = BuildQuery(target, settings);
-        var data = JSON.stringify(query);
+    var query = BuildQuery(target, settings);
+    var data = JSON.stringify(query);
 
-        var rurl = settings.graphserver + '/api/query/';
-        $.ajax({
-            type: "POST",
-            url: rurl,
-            data: data,
-            contentType: 'application/json; charset=utf-8',
-            dataType: 'json'
-        }).done(function (msg, textStatus, jqXHR) {
-            resolve = msg;
-            deferred.resolve(resolve);
-        }).fail(function (jqXHR, textStatus, errorThrown) {
-            TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
-            deferred.fail();
-        });
+    var rurl = settings.graphserver + '/api/query/';
+    $.ajax({
+        type: "POST",
+        url: rurl,
+        data: data,
+        contentType: 'application/json; charset=utf-8',
+        dataType: 'json'
+    }).done(function (msg, textStatus, jqXHR) {
+        resolve = msg;
+        deferred.resolve(resolve);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
+        deferred.fail();
     });
 
     return deferred.promise();

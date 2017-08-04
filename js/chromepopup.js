@@ -17,6 +17,9 @@ $("#savebtn").click(function () {
         items["infoserver"] = $("#infoserver").val();
         items["buildserver"] = $("#buildserver").val();
         items["graphserver"] = $("#graphserver").val();
+        
+        items["trustrender"] = $("input[name='trustrenderradio']:checked").val();
+        items["resultrender"] = $("input[name='resultrenderradio']:checked").val();
 
         controller.saveSettings(items);
         controller.buildKey(items);
@@ -30,8 +33,12 @@ function BindSettings(items) {
     $("#infoserver").val(items.infoserver);
     $("#buildserver").val(items.buildserver);
     $("#graphserver").val(items.graphserver);
+    $("[name='trustrenderradio']").val([items.trustrender]);
+    $("[name='resultrenderradio']").val([items.resultrender]);
+
     $("#address").text(items.keyPair.getAddress());
     $("#privateKey").text(items.keyPair.toWIF());
+
     var hash = tce.bitcoin.crypto.hash256("Demo");
     //$("#hashValue").text(hash.toString('base64'));
     //var message = tce.bitcoin.message.magicHash(hash);

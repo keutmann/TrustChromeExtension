@@ -2,116 +2,139 @@ var modalUrl = chrome.extension.getURL("redditmodal.html");
 var imageUrl = chrome.extension.getURL("img/Question_blue.png");
 var selectedElement = null;
 var settingsController = new SettingsController();
+settingsController.loadSettings(function (items) {
+    Load(items);
+});
 
-if (window.location.href.indexOf("reddit.com") > -1) {
-    var $links = $("a.author");
-    var target = [];
-    $links.each(function () { //.slice(0, 1)
-        var item = ParseTrustMe(this);
-        item.$link = $(this);
-        target.push(item);
 
-    });
+function Load(items) {
+    if (window.location.href.indexOf("reddit.com") > -1) {
 
-    ResolveTarget(target, settingsController).done(function (result) {
-        if (result) {
-            var parser = new QueryParser(result);
+        function ProcessLinks(items) {
+            var $links = $("a.author");
+            var target = [];
+            $links.each(function () { //.slice(0, 1)
+                var item = ParseTrustMe(this);
+                item.$link = $(this);
+                target.push(item);
+            });
 
-            for (var key in target) {
-                var item = target[key];
+            ResolveTarget(target, items).done(function (result) {
+                if (result) {
+                    var parser = new QueryParser(result);
 
-                var id = item.address.toString("base64");
-                var node = parser.FindById(id);
-                if (node && node.claim.trust) {
-                    item.$link.css("background-color", "green");
+                    for (var key in target) {
+                        var item = target[key];
+
+                        var id = item.address.toString("base64");
+                        var node = parser.FindById(id);
+                        if (node) {
+
+                            if (node.claim.trust) {
+                                if (items.trustrender == "color")
+                                    item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "lightgreen");
+
+                                if (items.trustrender == "icon")
+                                    item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "lightgreen");
+                            } else 
+                            {
+                                if (items.resultrender == "warning")
+                                    item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "pink");
+
+                                if (items.resultrender == "hide")
+                                    item.$link.closest("div[data-author='" + item.$link.text() + "']").hide();
+                            }
+                        }
+                    }
+
+                    //var jsonString = JSON.stringify(result);
+                    //console.log(jsonString);
+                    //$parent.css("background-color", "lightgrey");
+
                 }
-            }
-
-            //var jsonString = JSON.stringify(result);
-            //console.log(jsonString);
-            //$parent.css("background-color", "lightgrey");
-
+                else {
+                    //var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
+                    //$trustthis.iframeDialog(CreateDialogOptions(target));
+                    //$parent.append($trustthis);
+                }
+            });
         }
-        else {
-            //var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-            //$trustthis.iframeDialog(CreateDialogOptions(target));
-            //$parent.append($trustthis);
+
+
+        function trustmeDialog($trustme) {
+            $trustme.each(function () {
+                var target = ParseTrustMe(this); // this = a href element
+                $(this).iframeDialog(CreateDialogOptions(target));
+            });
+            $trustme.click(function () {
+                return false;
+            });
         }
-    });
+
+        function ExtendLinks(items) {
+            var keyPair = settingsController.buildKey(items);
+
+            var username = $("span.user a").text();
+            var id = keyPair.getPublicKeyBuffer().toString('HEX');
+
+            var targetHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username, 'UTF8'));
+            var ecSig = keyPair.sign(targetHash); // sign needs a sha256
+            var sig = ecSig.toDER().toString('HEX');
+            var target = targetHash.toString('HEX');
+
+            var trustme =
+                '  \r\n' +
+                '&nbsp;  \r\n' +
+                '*Trust me [' + username + '](' + items.infoserver +
+                '?page=trustme' +
+                '&scope=reddit' +
+                '&type=identity' +
+                '&id=' + id +
+                '&sig=' + sig +
+                '&target=' + target +
+                ' "' + username + '")*';
+
+            $('div.usertext-buttons button.save').click(function () {
+                var $area = $(this).closest("form").find("textarea");
+                $area.val($area.val() + trustme);
+                return true;
+            });
 
 
-    function trustmeDialog($trustme) {
-        $trustme.each(function () {
-            var target = ParseTrustMe(this); // this = a href element
-            $(this).iframeDialog(CreateDialogOptions(target));
-        });
-        $trustme.click(function () {
-            return false;
-        });
-    }
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    mutation.addedNodes.forEach(function (node) {
+                        if (!node.childNodes || node.childNodes.length == 0)
+                            return;
 
-    trustmeDialog($("em a[href*='?page=trustme&scope=reddit']"));
+                        var $node = $(node);
+                        $node.find('div.usertext-buttons button.save').click(function () {
+                            var $area = $(this).closest("form").find("textarea");
+                            $area.css('visibility', 'hidden');
+                            $area.val($area.val() + trustme);
+                            return true;
+                        });
 
-
-    settingsController.loadSettings(function (items) {
-        var keyPair = settingsController.buildKey(items);
-        
-        var username = $("span.user a").text();
-        var id = keyPair.getPublicKeyBuffer().toString('HEX');
-        
-        var targetHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username, 'UTF8'));
-        var ecSig = keyPair.sign(targetHash); // sign needs a sha256
-        var sig = ecSig.toDER().toString('HEX');
-        var target = targetHash.toString('HEX');
-
-        var trustme =
-            '  \r\n' +
-            '&nbsp;  \r\n' +
-            '*Trust me [' + username + '](' + items.infoserver +
-            '?page=trustme' +
-            '&scope=reddit' +
-            '&type=identity' +
-            '&id=' + id +
-            '&sig=' + sig +
-            '&target=' + target +
-            ' "' + username + '")*';
-
-        $('div.usertext-buttons button.save').click(function () {
-            var $area = $(this).closest("form").find("textarea");
-            $area.val($area.val() + trustme);
-            return true;
-        });
-
-
-        var observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (!node.childNodes || node.childNodes.length == 0)
-                        return;
-
-                    var $node = $(node);
-                    $node.find('div.usertext-buttons button.save').click(function () {
-                        var $area = $(this).closest("form").find("textarea");
-                        $area.css('visibility', 'hidden');
-                        $area.val($area.val() + trustme);
-                        return true;
+                        trustmeDialog($node.find("em a[href^='" + items.infoserver + "'?page=trustme']"));
                     });
-
-                    trustmeDialog($node.find("em a[href^='"+ items.infoserver + "'?page=trustme']"));
                 });
             });
-        });
 
-        var observerConfig = {
-            attributes: false,
-            childList: true,
-            subtree: true,
-            characterData: false
-        };
+            var observerConfig = {
+                attributes: false,
+                childList: true,
+                subtree: true,
+                characterData: false
+            };
 
-        var targetNode = document.body;
-        observer.observe(targetNode, observerConfig);
-    });
+            var targetNode = document.body;
+            observer.observe(targetNode, observerConfig);
+        }
+
+        ProcessLinks(items);
+        trustmeDialog($("em a[href*='?page=trustme&scope=reddit']"));
+        ExtendLinks(items);
+    }
 }
 
 document.addEventListener('contextmenu', function (e) {
