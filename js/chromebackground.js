@@ -1,10 +1,14 @@
 // Set up context menu tree at install time.
+var showForLinks = ["*://*/user/*"];
+
+
 chrome.runtime.onInstalled.addListener(function () {
     chrome.contextMenus.create({
         "title": "Trust",
         "id": "TrustIssue",
         "type": "normal",
-        "contexts": ["link"]
+        "contexts": ["link"],
+        //"documentUrlPatterns": showForLinks
     });
     //chrome.contextMenus.create({
     //    "title": "Issue",

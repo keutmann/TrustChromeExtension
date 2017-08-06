@@ -6,9 +6,9 @@ function SettingsController()
             "password": '',
             "seed": '',
             "rememberme": true,
-            "infoserver": "http://trust.dance",
-            //"buildserver": "http://trust.dance:12701",
-            "graphserver": "http://trust.dance:12702",
+            "infoserver": "https://trust.dance",
+            "buildserver": "https://trust.dance:12701",
+            "graphserver": "https://trust.dance:12702",
             'trustrender': 'icon',
             "resultrender": 'warning'
             //"keypair": null
@@ -46,23 +46,35 @@ function SettingsController()
 }
 
 function ParseTrustMe(a) {
-    var target = null;
+    var user = null;
     if (a instanceof HTMLAnchorElement) {
-        target = CreateTarget(a.text);
+        user = CreateTarget(a.text);
+
         if (a.search) {
             var pairs = a.search.substring(1).split('&');
             for (var i = 0; i < pairs.length; i++) {
                 var kv = pairs[i].split('=');
                 var val = decodeURIComponent(kv[1].replace(/\+/g, ' '));
-                target[kv[0].toLowerCase()] = val;
+                user[kv[0].toLowerCase()] = val;
             }
         }
     }
     else if (a instanceof String) {
-        target = CreateTarget(a);
+        user = CreateTarget(a);
     }
-    target.address = GetTargetAddress(target);
-    return target;
+    var $proof = $("a[href*='&scope=reddit']:contains('Proof')").first();
+    if ($proof.length > 0) {
+        var href = $proof.attr("href").split("&");
+        for (key in href) {
+            var part = href[key];
+            var p = part.split("=");
+            user[p[0]] = p[1];
+        }
+    }
+
+    user.address = GetTargetAddress(user);
+
+    return user;
 }
 
 function CreateTarget(content, type) {
@@ -131,7 +143,7 @@ function TrustBuilder(issuerId) {
         var id = tce.bitcoin.crypto.hash160(new tce.buffer.Buffer(target.content, 'UTF8'));
         var subject = this.addSubject(id, (type) ? type : target.type, target.scope);
         if (target.trust != undefined)
-            subject.claim["trust"] = target.trust.toString(); // Needs to be a string type!
+            subject.claim["trust"] = target.trust;
 
         return subject;
     }
@@ -190,7 +202,7 @@ function BuildTrust(settings, target) {
         // Identity subject
         var idSubject = trustBuilder.addSubject(tce.bitcoin.crypto.hash160(objId), target.type, target.scope);
         if (target.trust)
-            idSubject.claim["trust"] = target.trust.toString();
+            idSubject.claim["trust"] = target.trust;
 
         // Name subject
         trustBuilder.addSubjectByContent(target, "name");  // Add second subject trust with the name 
@@ -215,7 +227,7 @@ tce.buffer.Buffer.prototype.toJSON = function toJSON() {
 }
 
 function GetTargetAddress(target) {
-    var address = (target.id) ? GetAddress(target.id, target.sig, target.target) :
+    var address = (target.id) ? GetAddress(target.id, target.sig, target.content) :
                 GetAddressFromContent(target.content);
     return address;
 }

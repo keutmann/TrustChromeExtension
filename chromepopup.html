@@ -52,14 +52,16 @@
                         <div id="keyContainer" class="collapse col-xs-12">
                             <div><label for="address">Address</label></div>
                             <div id="address"></div>
+                            <div><label for="keyid">ID</label></div>
+                            <div id="keyid"></div>
                             <div><label for="privateKey">Private key</label></div>
                             <div id="privateKey"></div>
                             <div><label for="signature">Signature</label></div>
                             <div id="signature" style="overflow-wrap: break-word;"></div>
                             <!--<div>Public key: <span id="publicKey"></span></div>-->
                             <!--<p>Hash Value: <span id="hashValue"></span></p>
-                            <p>Message: <span id="message"></span></p>
-                            <p>Pre HEX: <span id="prehex"></span></p>-->
+                        <p>Message: <span id="message"></span></p>
+                        <p>Pre HEX: <span id="prehex"></span></p>-->
 
                         </div>
                     </div>
@@ -79,10 +81,10 @@
                             <label><input type="radio" name="trustrenderradio" value="noaction">No action</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="trustrenderradio" value="warning">Color</label>
+                            <label><input type="radio" name="trustrenderradio" value="color">Color</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="trustrenderradio" value="hide">Icon</label>
+                            <label><input type="radio" name="trustrenderradio" value="icon">Icon</label>
                         </div>
                     </div>
                     <p>Behavior of rendering of distrust</p>
@@ -101,15 +103,17 @@
                 <div id="servercontainer" class="tab-pane">
                     <h2 class="form-signin-heading">Trust servers</h2>
                     <p>Remote Trust servers</p>
-                    <!--<label for="infoserver">Info server</label>
-                <input type="url" id="infoserver" class="form-control" placeholder="Info server" value="https://trustchain.info" required autofocus>
-                <p></p>
-                <label for="buildserver">Build server</label>
-                <input type="url" id="buildserver" class="form-control" placeholder="Build server" value="https://trustchain.info:12601" required>
-                <p></p>-->
+                    <div class="input-group">
+                        <label for="infoserver">Info server</label>
+                        <input type="url" id="infoserver" class="form-control" placeholder="Info server" value="https://trust.dance" required autofocus>
+                        </div>
+                    <div class="input-group">
+                        <label for="buildserver">Build server</label>
+                        <input type="url" id="buildserver" class="form-control" placeholder="Build server" value="https://trust.dance:12701" required>
+                    </div>
                     <div class="input-group">
                         <label for="graphserver">Trust server</label>
-                        <input type="url" id="graphserver" class="form-control" placeholder="Graph server" value="https://trustchain.info:12702" required>
+                        <input type="url" id="graphserver" class="form-control" placeholder="Graph server" value="https://trust.dance:12702" required>
                     </div>
                 </div>
             </div>

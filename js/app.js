@@ -71,32 +71,49 @@ function Load(items) {
             });
         }
 
-        function ExtendLinks(items) {
-            var keyPair = settingsController.buildKey(items);
-
-            var username = $("span.user a").text();
+        function BuildProof(settings, username, content) {
+            var keyPair = settingsController.buildKey(settings);
+            
             var id = keyPair.getPublicKeyBuffer().toString('HEX');
-
-            var targetHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username, 'UTF8'));
-            var ecSig = keyPair.sign(targetHash); // sign needs a sha256
+            var contentHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username + content.trim(), 'UTF8'));
+            var ecSig = keyPair.sign(contentHash); // sign needs a sha256
             var sig = ecSig.toDER().toString('HEX');
-            var target = targetHash.toString('HEX');
+            var contentHex = contentHash.toString('HEX');
 
-            var trustme =
-                '  \r\n' +
-                '&nbsp;  \r\n' +
-                '*Trust me [' + username + '](' + items.infoserver +
-                '?page=trustme' +
+            var proof =
+                ' ([Proof](' + settings.infoserver +
+                '/proof.htm' +
+                '?name=' + username +
                 '&scope=reddit' +
-                '&type=identity' +
+                //'&type=identity' + // Needed?
                 '&id=' + id +
                 '&sig=' + sig +
-                '&target=' + target +
-                ' "' + username + '")*';
+                '&content=' + contentHex +
+                ' "' + username + '"))';
+
+            return proof;
+        }
+
+        function ExtendLinks(settings) {
+            function EnsureProof($area) {
+                var username = $("span.user a").text();
+                var content = $area.val();
+                var proofIndex = content.indexOf("([Proof](");
+                if (proofIndex >= 0) {
+                    var temp = content.substring(proofIndex);
+                    var endIndex = temp.indexOf("))");
+                    if (endIndex > 0) {
+                        content = content.substring(0, proofIndex) + content.substring(proofIndex + endIndex + "))".length);
+                    }
+                }
+
+                $area.val(content + BuildProof(settings, username, content));
+            }
+
 
             $('div.usertext-buttons button.save').click(function () {
                 var $area = $(this).closest("form").find("textarea");
-                $area.val($area.val() + trustme);
+                EnsureProof($area);
                 return true;
             });
 
@@ -110,12 +127,12 @@ function Load(items) {
                         var $node = $(node);
                         $node.find('div.usertext-buttons button.save').click(function () {
                             var $area = $(this).closest("form").find("textarea");
+                            EnsureProof($area);
                             $area.css('visibility', 'hidden');
-                            $area.val($area.val() + trustme);
                             return true;
                         });
 
-                        trustmeDialog($node.find("em a[href^='" + items.infoserver + "'?page=trustme']"));
+                        //trustmeDialog($node.find("em a[href^='" + settings.infoserver + "'?page=trustme']"));
                     });
                 });
             });
@@ -132,7 +149,7 @@ function Load(items) {
         }
 
         ProcessLinks(items);
-        trustmeDialog($("em a[href*='?page=trustme&scope=reddit']"));
+        //trustmeDialog($("em a[href*='?page=trustme&scope=reddit']")); // No need 
         ExtendLinks(items);
     }
 }
@@ -152,6 +169,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             var target = CreateTarget(content);
             if (!info.selectionText)
                 target.type = "url";
+
+            var $proof = $("a[href*='&scope=reddit']:contains('Proof')").first();
+            if ($proof.length > 0) {
+                var href = $proof.attr("href").split("&");
+                for (key in href) {
+                    var part = href[key];
+                    var p = part.split("=");
+                    target[p[0]] = p[1];
+                }
+            }
+
+            target.address = GetTargetAddress(target);
+
 
             $(selectedElement).openIframeDialog(CreateDialogOptions(target));
             console.log(request.content);
