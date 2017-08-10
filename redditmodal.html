@@ -45,10 +45,12 @@
 <body>
     <form>
         <p>The subject to be trusted.</p>
-        <p>ID: <span class="subject" id="subjectId"></span></p>
-        <p>Name: <span class="subject" id="subjectName"></span></p>
-        <p>Type: <span class="subject" id="subjectType"></span></p>
-        <p><span class="" id="trustTargetDescription"></span></p>
+        <p>Chain ID: <span class="subject" id="subjectId"></span></p>
+        <p>
+            <span>Content:</span>
+            <div class="subject" id="contentName"></div>
+            <div class="subject" >(<span id="contentid"></span>)</div>
+        </p>
         <table>
             <!--<tr>
                 <td class="formdescription">
@@ -81,7 +83,7 @@
                     <h4>Trust</h4>
                     <p>Trust the subject identity.</p>
                 </td>
-                <td class="forminput" >
+                <td class="forminput">
                     <label for="radio-trust" class="radio-label">Trust</label>
                     <input type="radio" name="radio-trust" id="radio-trust" value="trust" checked>
                     <label for="radio-neutral" class="radio-label">Neutral</label>

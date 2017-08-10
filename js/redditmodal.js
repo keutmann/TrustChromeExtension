@@ -30,12 +30,11 @@ window.addEventListener("message", function (event) {
 function OnDataLoad(data) {
     target = data.content;
     
-    if (target.type == 'content') {
+    if (!target.id) {
         var rurl = "https://www.reddit.com/user/"+target.content+"/comments.json?t=all&limit=10&sort=new&t=all";
         $.ajax({
             type: "GET",
             url: rurl,
-            //contentType: 'application/json; charset=utf-8',
             dataType: 'json'
         }).done(function (result, textStatus, jqXHR) {
             if(result.data && result.data.children.length > 0) {
@@ -75,13 +74,22 @@ function OnDataLoad(data) {
 }
 
 function DataBind(target) {
-    var idhex = new tce.buffer.Buffer(target.id, 'HEX').toString('HEX');
-    $("#subjectId").html(idhex); // Only render the Text part
-    $("#subjectName").html(target.content); // Only render the Text part
-    $("#subjectType").html(target.type); // Only render the Text part
+    var bufID = (target.id) ? new tce.buffer.Buffer(target.id, 'HEX') : null;
+    if (bufID != null) {
+        var address = tce.bitcoin.ECPair.fromPublicKeyBuffer(bufID).getAddress();
+        $("#subjectId").html(address); // Only render the Text part
+    } else {
+        $("#subjectId").html("No ID was found");
+    }
 
-    var desc = (target.type == "id") ? "Subject ID is from the author of the name.": "No author ID was found for the name.";
-    $("#trustTargetDescription").html(desc); // Only render the Text part
+    $("#contentName").html(target.content); // Only render the Text part
+
+    //var contentIdBuffer = (target.contentid) ? new tce.buffer.Buffer(target.contentid, 'HEX') : null;
+    //var contentAddress = tce.bitcoin.ECPair.fromPublicKeyBuffer(contentid).getAddress();
+    
+    $("#contentid").html(target.contentid); // Only render the Text part
+    //$("#subjectType").html(target.type); // Only render the Text part
 }
+
 
 

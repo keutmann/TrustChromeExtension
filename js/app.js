@@ -22,12 +22,11 @@ function Load(items) {
             var user = users[author];
             if (!user) {
                 user = CreateTarget(author);
-                user.id = GetIDFromContent(author); //Make sure that a user has an ID
+                user.contentid = GetIDFromContent(author).toString('HEX'); //Make sure that a user has an ID
                 users[author] = user; 
             }
-            //user.elements.push(this);
                 
-            if (user.type == 'content') { // Try to find a proof ID 
+            if (!user.id) { // Try to find a proof ID 
                 var $proof = $(this).find("a[href*='scope=reddit']:contains('Proof')")
                 if ($proof.length > 0) {
                     var href = $proof.attr("href").split("?")[1].split("&");
