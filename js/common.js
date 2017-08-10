@@ -91,7 +91,8 @@ function CreateTarget(content, type) {
         rating: 0,
         activate: 0,
         expire: 0,
-        content: content ? content.trim() : content
+        content: content ? content.trim() : content,
+        elements : []
     };
     return obj;
 }
@@ -228,7 +229,7 @@ tce.buffer.Buffer.prototype.toJSON = function toJSON() {
 
 function GetTargetAddress(target) {
     var address = (target.id) ? GetAddress(target.id, target.sig, target.content) :
-                GetAddressFromContent(target.content);
+                GetIDFromContent(target.content);
     return address;
 }
 
@@ -249,7 +250,7 @@ function GetAddress(id, sig, target) {
     return tce.bitcoin.crypto.hash160(objId);
 }
 
-function GetAddressFromContent(content) {
+function GetIDFromContent(content) {
     return tce.bitcoin.crypto.hash160(new tce.buffer.Buffer(content, 'UTF8'));
 }
 
@@ -296,12 +297,10 @@ function BuildQuery(target, settings) {
 
     //var subjectAddress = GetTargetAddress(target);
 
-    var subjects = [];
-    for (var key in target) {
-        var item = target[key];
-        subjects.push({ id: item.address, type: '' });
-    }
-    
+
+
+    var subjects = target.map(function (item) { return { id: item.id, type: '' } });
+   
 
     var obj = {
         "issuers": [settings.publicKeyHash],
@@ -362,6 +361,27 @@ function QueryParser(queryResult) {
 
     return this;
 }
+
+function getQueryParams(url) {
+    var qparams = {},
+        parts = (url || '').split('?'),
+        qparts, qpart,
+        i = 0;
+
+    if (parts.length <= 1) {
+        return qparams;
+    } else {
+        qparts = parts[1].split('&');
+        for (i in qparts) {
+
+            qpart = qparts[i].split('=');
+            qparams[decodeURIComponent(qpart[0])] =
+                           decodeURIComponent(qpart[1] || '');
+        }
+    }
+
+    return qparams;
+};
 
 //{
 //    "TotalNodeCount": 1,

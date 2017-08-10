@@ -9,6 +9,7 @@
 (function ($) {
     var dialogData = "";
     var current = null;
+    //var $iframe = null;
 
     $.fn.iframeDialog = function (options) {
         this.each(function () {
