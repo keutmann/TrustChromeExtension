@@ -4,6 +4,7 @@ var selectedElement = null;
 var users = [];
 var $things = null;
 
+
 var settingsController = new SettingsController();
 if (window.location.href.indexOf("reddit.com") > -1) {
     settingsController.loadSettings(function (items) {

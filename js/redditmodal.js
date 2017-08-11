@@ -76,19 +76,15 @@ function OnDataLoad(data) {
 function DataBind(target) {
     var bufID = (target.id) ? new tce.buffer.Buffer(target.id, 'HEX') : null;
     if (bufID != null) {
-        var address = tce.bitcoin.ECPair.fromPublicKeyBuffer(bufID).getAddress();
-        $("#subjectId").html(address); // Only render the Text part
+        var pubKey = tce.bitcoin.ECPair.fromPublicKeyBuffer(bufID);
+        $("#subjectId").html(pubKey.getAddress()); // Only render the Text part
     } else {
-        $("#subjectId").html("No ID was found");
+        $("#subjectId").html("No Trust ID was provided.");
     }
-
     $("#contentName").html(target.content); // Only render the Text part
-
-    //var contentIdBuffer = (target.contentid) ? new tce.buffer.Buffer(target.contentid, 'HEX') : null;
-    //var contentAddress = tce.bitcoin.ECPair.fromPublicKeyBuffer(contentid).getAddress();
-    
-    $("#contentid").html(target.contentid); // Only render the Text part
-    //$("#subjectType").html(target.type); // Only render the Text part
+    var buf = new tce.buffer.Buffer("41" + target.contentid, 'HEX');
+    var ctidbase85check = tce.base58check.encode(buf);
+    $("#contentid").html(ctidbase85check); // Only render the Text part
 }
 
 

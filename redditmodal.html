@@ -44,15 +44,21 @@
 
 <body>
     <form>
-        <p>The subject to be trusted.</p>
-        <p>Chain ID: <span class="subject" id="subjectId"></span></p>
-        <p>
-            <span>Content:</span>
-            <div class="subject" id="contentName"></div>
-            <div class="subject" >(<span id="contentid"></span>)</div>
-        </p>
+        <p><h1>The subject to be trusted.</h1></p>
         <table>
-            <!--<tr>
+            <tr>
+                <td><span>Trust ID: </span></td>
+                <td><span class="subject" id="subjectId"></span></td>
+            </tr>
+            <tr>
+                <td><span>Subject: </span></td>
+                <td><span class="subject" id="contentName"></span></td>
+            </tr>
+            <tr>
+                <td><span>Subject hash: </span></td>
+                <td><span class="subject" id="contentid"></span></td>
+            </tr>
+                <!--<tr>
                 <td class="formdescription">
                     <h4>Subject</h4>
                 </td>
@@ -60,7 +66,7 @@
                     <input type="text" name="subject" id="subject" value="" class="text ui-widget-content ui-corner-all">
                 </td>
             </tr>-->
-            <!--<tr>
+                <!--<tr>
                 <td class="formdescription">
                     <h4>Subject Type</h4>
                     <p>Identifies the type of the subject.</p>
@@ -78,23 +84,21 @@
                     <input type="text" name="scope" id="scope" value="" class="text ui-widget-content ui-corner-all">
                 </td>
             </tr>-->
-            <tr>
-                <td class="formdescription">
-                    <h4>Trust</h4>
-                    <p>Trust the subject identity.</p>
-                </td>
-                <td class="forminput">
-                    <label for="radio-trust" class="radio-label">Trust</label>
-                    <input type="radio" name="radio-trust" id="radio-trust" value="trust" checked>
-                    <label for="radio-neutral" class="radio-label">Neutral</label>
-                    <input type="radio" name="radio-trust" id="radio-neutral" value="neutral">
-                    <label for="radio-distrust" class="radio-label">Distrust</label>
-                    <input type="radio" name="radio-trust" id="radio-distrust" value="distrust">
-                    <!--<label for="radio-confirm" class="radio-label">Confirm</label>
+                <tr>
+                    <td></td>
+                    <td class="forminput">
+                        <p>Trust the subject</p>
+                        <label for="radio-trust" class="radio-label">Trust</label>
+                        <input type="radio" name="radio-trust" id="radio-trust" value="trust" checked>
+                        <label for="radio-neutral" class="radio-label">Neutral</label>
+                        <input type="radio" name="radio-trust" id="radio-neutral" value="neutral">
+                        <label for="radio-distrust" class="radio-label">Distrust</label>
+                        <input type="radio" name="radio-trust" id="radio-distrust" value="distrust">
+                        <!--<label for="radio-confirm" class="radio-label">Confirm</label>
                     <input type="radio" name="radio-trust" id="radio-confirm" value="confirm">-->
-                </td>
-            </tr>
-            <!--<tr>
+                    </td>
+                </tr>
+                <!--<tr>
                 <td class="formdescription">
                     <h4>Comment</h4>
                     <p>Short text about the trust<br />(max 100 char).</p>
@@ -103,7 +107,7 @@
                     <textarea name="comment" id="comment" value="" class="text ui-widget-content ui-corner-all" maxlength="100" rows="3" cols="33"></textarea>
                 </td>
             </tr>-->
-            <!--<tr>
+                <!--<tr>
                 <td class="formdescription">
                     <h4>Confirm</h4>
                     <p>Confirm the subject identity.</p>
@@ -117,8 +121,8 @@
                     <input type="radio" name="radio-confirm" id="radio-confirm-no">
                 </td>
             </tr>-->
-        </table>
-    </form>
+            </table>
+</form>
     <script src="js/jquery-2.0.3.min.js"></script>
     <script src="lib/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
