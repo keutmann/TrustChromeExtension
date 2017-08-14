@@ -44,7 +44,7 @@
 
 <body>
     <form>
-        <p><h1>The subject to be trusted.</h1></p>
+        <p><h1>The subject to be trusted</h1></p>
         <table>
             <tr>
                 <td><span>Trust ID: </span></td>
@@ -96,6 +96,28 @@
                         <input type="radio" name="radio-trust" id="radio-distrust" value="distrust">
                         <!--<label for="radio-confirm" class="radio-label">Confirm</label>
                     <input type="radio" name="radio-trust" id="radio-confirm" value="confirm">-->
+                    </td>
+                </tr>
+                <tr id="oldtrust" style="visibility:hidden">
+                    <td colspan="2">
+                        <table>
+                            <tr>
+                                <td>Timestamp</td>
+                                <td id="trusttimestamp"></td>
+                            </tr>
+                            <tr>
+                                <td>Claim</td>
+                                <td id="trustclaim"></td>
+                            </tr>
+                            <tr>
+                                <td>Activate</td>
+                                <td id="trustactivate"></td>
+                            </tr>
+                            <tr>
+                                <td>Expire</td>
+                                <td id="trustexpire"></td>
+                            </tr>
+                        </table>
                     </td>
                 </tr>
                 <!--<tr>

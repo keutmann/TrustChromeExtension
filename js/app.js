@@ -7,28 +7,31 @@ var $things = null;
 
 var settingsController = new SettingsController();
 if (window.location.href.indexOf("reddit.com") > -1) {
-    settingsController.loadSettings(function (items) {
-        Load(items);
+    settingsController.loadSettings(function (settings) {
+        Load(settings);
     });
 }
 
 
-function Load(items) {
+function Load(settings) {
     function LoadThings() {
 
         $things = $("div.thing[data-author]");
         $things.each(function () {
+            var user;
+            var $current = $(this);
+            var authorName = $current.data("author");
+            var author = users[authorName];
+            if (!author) {
+                user = CreateTarget(authorName);
+                user.contentid = GetIDFromContent(authorName); //.toString('HEX'); //Make sure that a user has an ID
+                users[authorName] = { user: user, $element: $current };
+            } else
+                user = author.user;
 
-            var author = $(this).data("author");
-            var user = users[author];
-            if (!user) {
-                user = CreateTarget(author);
-                user.contentid = GetIDFromContent(author).toString('HEX'); //Make sure that a user has an ID
-                users[author] = user; 
-            }
                 
             if (!user.id) { // Try to find a proof ID 
-                var $proof = $(this).find("a[href*='scope=reddit']:contains('Proof')")
+                var $proof = $current.find("a[href*='scope=reddit']:contains('Proof')")
                 if ($proof.length > 0) {
                     var href = $proof.attr("href").split("?")[1].split("&");
                     for (key in href) {
@@ -36,7 +39,7 @@ function Load(items) {
                         var p = part.split("=");
                         if (p[0] == 'id') {
                             user.type = "id";
-                            user[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || '');
+                            user[decodeURIComponent(p[0])] = new tce.buffer.Buffer(decodeURIComponent(p[1] || ''), "HEX");
                         }
                     }
                 }
@@ -47,30 +50,37 @@ function Load(items) {
 
     function ProcessThings() {
 
-        ResolveTarget(users, items).done(function (result) {
+        ResolveTarget(users, settings).done(function (result) {
             if (result) {
                 var parser = new QueryParser(result);
-
-                for (var key in target) {
-                    var item = target[key];
-
-                    var id = item.address.toString("base64");
-                    var node = parser.FindById(id);
+                
+                for (var name in users) {
+                    var author = users[name];
+                    var user = author.user;
+                    var id = (user.id) ? user.id : user.contentid;
+                    //var objId = new tce.buffer.Buffer(id, 'HEX');
+                    var idbase64 = id.toString("base64");
+                    if (user.content == "chakhabona") {
+                        if (idbase64 == "115omNV0gUFepSumPYO61Y2Ecic=") {
+                            console.log(idbase64);
+                        }
+                    }
+                    var node = parser.FindById(idbase64);
                     if (node) {
-
+                        var $thing = author.$element.closest("div[data-author='" + name + "']");
                         if (node.claim.trust) {
-                            if (items.trustrender == "color")
-                                item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "lightgreen");
+                            if (settings.trustrender == "color")
+                                $thing.css("background-color", "lightgreen");
 
-                            if (items.trustrender == "icon")
-                                item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "lightgreen");
+                            if (settings.trustrender == "icon")
+                                $thing.css("background-color", "lightgreen");
                         } else 
                         {
-                            if (items.resultrender == "warning")
-                                item.$link.closest("div[data-author='" + item.$link.text() + "']").css("background-color", "pink");
+                            if (settings.resultrender == "warning")
+                                $thing.css("background-color", "pink");
 
-                            if (items.resultrender == "hide")
-                                item.$link.closest("div[data-author='" + item.$link.text() + "']").hide();
+                            if (settings.resultrender == "hide")
+                                $thing.hide();
                         }
                     }
                 }
@@ -177,9 +187,8 @@ function Load(items) {
     }
 
     LoadThings();
-    //ProcessThings();
-    //trustmeDialog($("em a[href*='?page=trustme&scope=reddit']")); // No need 
-    //ExtendLinks(items);
+    ProcessThings();
+    ExtendLinks(settings);
 }
 
 document.addEventListener('contextmenu', function (e) {
@@ -193,10 +202,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if(!info.linkUrl)
                 return;
 
-            var author = info.linkUrl.split('/').pop();
-            var user = users[author];
+            var authorName = info.linkUrl.split('/').pop();
+            var author = users[authorName];
 
-            $(selectedElement).openIframeDialog(CreateDialogOptions(user));
+            $(selectedElement).openIframeDialog(CreateDialogOptions(author.user));
 
             //var target = CreateTarget(content);
             //if (!info.selectionText)
@@ -237,7 +246,7 @@ window.addEventListener('message', function (event) {
                 contentType: 'application/json; charset=utf-8',
                 dataType: 'json'
             }).done(function (msg, textStatus, jqXHR) {
-                //alert("Trust submitted: " + msg);
+
             }).fail(function (jqXHR, textStatus, errorThrown) {
                 TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
             }).always(function () {

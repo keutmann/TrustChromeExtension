@@ -91,8 +91,7 @@ function CreateTarget(content, type) {
         rating: 0,
         activate: 0,
         expire: 0,
-        content: content ? content.trim() : content,
-        elements : []
+        content: content ? content.trim() : content
     };
     return obj;
 }
@@ -188,9 +187,11 @@ function BuildTrust(settings, target) {
     var trustBuilder = new TrustBuilder(settings.publicKeyHash);
 
     if (target.id) { // The target has an id !
+        //.publicKeyHash
         var objId = new tce.buffer.Buffer(target.id, 'HEX');
-        var linkKeyPair = tce.bitcoin.ECPair.fromPublicKeyBuffer(objId);
-
+        var idaddress = tce.bitcoin.crypto.hash160(objId);
+        
+        /*
         var objSig = new tce.buffer.Buffer(target.sig, 'HEX');
         var targetID = new tce.buffer.Buffer(target.target, 'HEX');
         var ecSig = tce.bitcoin.ECSignature.fromDER(objSig);
@@ -200,8 +201,9 @@ function BuildTrust(settings, target) {
             Alert("Invalid signature on id : " + objId.toString('HEX'));
             return;
         }
+        */
         // Identity subject
-        var idSubject = trustBuilder.addSubject(tce.bitcoin.crypto.hash160(objId), target.type, target.scope);
+        var idSubject = trustBuilder.addSubject(idaddress, target.type, target.scope);
         if (target.trust)
             idSubject.claim["trust"] = target.trust;
 
@@ -294,13 +296,13 @@ function ResolveTarget(target, settings) {
 }
 
 function BuildQuery(target, settings) {
-
-    //var subjectAddress = GetTargetAddress(target);
-
-
-
-    var subjects = target.map(function (item) { return { id: item.id, type: '' } });
-   
+    var subjects = [];
+    for (var key in target) {
+        var author = target[key];
+        var user = author.user;
+        var subject = { id: (user.id) ? user.id : user.contentid, type: '' };
+        subjects.push(subject);
+    }
 
     var obj = {
         "issuers": [settings.publicKeyHash],
