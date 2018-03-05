@@ -2,7 +2,7 @@ var settingsController = new SettingsController();
 var target;
 var settings; 
 
-
+//https://www.reddit.com/user/trustchain/.json
 
 // Onload
 $(function () {

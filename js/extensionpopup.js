@@ -15,8 +15,8 @@ $("#savebtn").click(function () {
         items["seed"] = $("#inputSeed").val();
         items["rememberme"] = $("#rememberMe").is(':checked');
         items["infoserver"] = $("#infoserver").val();
-        items["buildserver"] = $("#buildserver").val();
-        items["graphserver"] = $("#graphserver").val();
+        // items["buildserver"] = $("#buildserver").val();
+        // items["graphserver"] = $("#graphserver").val();
         
         items["trustrender"] = $("input[name='trustrenderradio']:checked").val();
         items["resultrender"] = $("input[name='resultrenderradio']:checked").val();
@@ -31,8 +31,8 @@ function BindSettings(items) {
     $("#inputPassword").val(items.password);
     $("#inputSeed").val(items.seed);
     $("#infoserver").val(items.infoserver);
-    $("#buildserver").val(items.buildserver);
-    $("#graphserver").val(items.graphserver);
+    // $("#buildserver").val(items.buildserver);
+    // $("#graphserver").val(items.graphserver);
     $("[name='trustrenderradio']").val([items.trustrender]);
     $("[name='resultrenderradio']").val([items.resultrender]);
 

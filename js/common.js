@@ -86,11 +86,6 @@ function CreateTarget(content, type) {
         target: undefined,
         type: (type) ? type: "content",
         scope: window.location.hostname,
-        trust: undefined,
-        confirm: undefined,
-        rating: 0,
-        activate: 0,
-        expire: 0,
         content: content ? content.trim() : content
     };
     return obj;
@@ -158,7 +153,7 @@ function TrustBuilder(issuerId) {
             var s = this.trust.issuer.subject[k];
 
             offset += s.id.copy(buf, offset, 0, s.id.length); // Bytes!
-            offset += buf.write(s.idtype.toLowerCase(), offset);
+            //offset += buf.write(s.idtype.toLowerCase(), offset); // ID Type is not used anymore
 
             for (var c in s.claim) {
                 if (!s.claim.hasOwnProperty(c))
@@ -257,7 +252,7 @@ function GetIDFromContent(content) {
 }
 
 
-function ResolveTarget(target, settings) {
+function ResolveTarget(users, settings) {
     var deferred = $.Deferred();
     var resolve = undefined;
 
@@ -274,10 +269,10 @@ function ResolveTarget(target, settings) {
 
     settingsController.buildKey(settings);
 
-    var query = BuildQuery(target, settings);
+    var query = BuildQuery(users, settings);
     var data = JSON.stringify(query);
 
-    var rurl = settings.graphserver + '/api/query/';
+    var rurl = settings.infoserver + '/api/query/';
     $.ajax({
         type: "POST",
         url: rurl,
@@ -295,31 +290,29 @@ function ResolveTarget(target, settings) {
     return deferred.promise();
 }
 
-function BuildQuery(target, settings) {
+function BuildQuery(users, settings) {
     var subjects = [];
-    for (var key in target) {
-        var author = target[key];
-        var user = author.user;
-        var subject = { id: (user.id) ? user.id : user.contentid, type: '' };
+    for (var authorName in users) {
+        var user = target[authorName];
+        var subject = { id: user.contentid };
         subjects.push(subject);
     }
 
     var obj = {
-        "issuers": [settings.publicKeyHash],
+        "issuers": settings.publicKeyHash,
         "subjects": subjects,
 
         // Scope is used to filter on trust resolvement. It can be any text
-        "scope": (target.scope) ? target.scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
+        "claimScope": (target.scope) ? target.scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
 
         // Claim made about the subject. The format is specified by the version property in the header section.
-        "claim": {
-            "trust": true, // Search for trusted subjects.
-            //"confirm": true // Search for subjects that has been confirmed to be real, like a person or corp.
-        },
-
+        "claimTypes": [
+            "binarytrust.tc1"
+          ],
+        "level": 0,
+        //"flags": "LeafsOnly"
     }
     return obj;
-
 }
 
 function TrustServerErrorAlert(jqXHR, textStatus, errorThrown, server) {
@@ -338,31 +331,57 @@ function TrustServerErrorAlert(jqXHR, textStatus, errorThrown, server) {
         
 }
 
+var PackageParser = (function() {
+    function  PackageParser(package) {
+        var self = this;
 
-function QueryParser(queryResult) {
-    var self = this;
+        this.package = package;
+        this.targets = [];
 
-    this.FindById = function(id) {
-        return FindNodeById(id, queryResult);
-    }
+        var trusts = package.trusts;
+        for(trust in trusts)
+        {
+            
+            for(subject in trust.subjects)
+            {
+                var target = targets[subject.address];
+                if(!target) {
+                    target = subject;
+                    target.issuers = [];
+                    target.aliases = [];
+                    target.claims = [];
+                    targets[subject.address] = target;
+                } 
 
-    function FindNodeById(id, parentNode) {
-        for (key in parentNode.nodes) {
-            var node = parentNode.nodes[key];
-            if (node.id == id)
-                return node;
+                // Add claims
+                if(!subject.claimIndexs || subject.claimIndexs.length == 0)
+                {  // If not claim index exist, default is Trust true
+                    target.cliams.push({
+                            "index": 0,
+                            "type": "binarytrust.tc1",
+                            "data": "{\"trust\":true}",
+                            "cost": 100
+                          });    
+                } else {
+                    for(claimIndex in subject.claimIndexs) 
+                        target.claims.push(trust.claims[claimIndex]);
+                }
 
-            if (node.nodes) {
-                var result = FindNodeById(id, node);
-                if (result)
-                    return result;
+                if(!subject.alias)
+                    target.aliases.push(subject.alias);
+
+                target.issuers[trust.issuer.address] = trust.issuer;
             }
+            
         }
-        return null;
+
     }
 
-    return this;
-}
+    // PackageParser.prototype.
+
+    return PackageParser;
+}());
+
 
 function getQueryParams(url) {
     var qparams = {},
@@ -384,20 +403,3 @@ function getQueryParams(url) {
 
     return qparams;
 };
-
-//{
-//    "TotalNodeCount": 1,
-//	"TotalEdgeCount": 1,
-//	"MatchEdgeCount": 1,
-//	"nodes": [{
-//	    "id": "K2c618oiqO547JJ9bWs6lsKFWCI=",
-//	    "idtype": "content",
-//	    "claim": {
-//	        "trust": true
-//	    },
-//	    "cost": 100,
-//	    "activate": 0,
-//	    "expire": 0,
-//	    "scope": "www.reddit.com"
-//	}]
-//}

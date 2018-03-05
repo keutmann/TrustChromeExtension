@@ -14,7 +14,7 @@
       "19": "img/icon48.png",
       "38": "img/icon48.png"
     },
-    "default_popup": "chromepopup.html"
+    "default_popup": "extensionpopup.html"
   },
   "permissions": [
     "contextMenus",
@@ -24,7 +24,7 @@
   ],
   "background": {
     "persistent": false,
-    "scripts": [ "js/jquery-2.0.3.min.js", "js/chromebackground.js" ]
+    "scripts": [ "js/jquery-2.0.3.min.js", "js/background.js" ]
   },
   "content_scripts": [
     {
@@ -39,12 +39,11 @@
         "js/jquery.iframeDialog.js",
         "lib/bitcoinjs/bitcoin.js",
         "js/common.js",
-        "js/app.js"
+        "js/reddit.js"
       ],
       "run_at": "document_end"
     }
   ],
-  //"content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "web_accessible_resources": [
     "/*",
     "img/*",

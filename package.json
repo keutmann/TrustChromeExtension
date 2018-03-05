@@ -1,0 +1,10 @@
+{
+    "name": "trustchain",
+    "version": "0.1.0",
+    "typeAcquisition": {
+        "include": [
+            "jquery"
+        ]
+    }
+
+}
