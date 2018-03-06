@@ -25,19 +25,20 @@ var Reddit = (function () {
 
                 var $this = $(this);
                 var authorName = $this.data("author");
+
                 var user = self.users[authorName];
                 if(!user) {
                     var user = {};
                     user.$htmlContainers = []; 
                     user.authorName = authorName;
-                    user.id = $(this).data("author-fullname");
+                    user.id = $this.data("author-fullname");
                     user.nameTarget = CreateTarget(user.authorName, "name"); 
                     user.nameTarget.contentid = GetIDFromContent(user.authorName); //.toString('HEX'); //Make sure that a user has an ID
 
                     self.users[user.authorName] = user;
                     //user.identity = null;
                 }
-                user.$htmlContainers.push($(this));
+                user.$htmlContainers.push($this);
 
                 if(!user.identity) {
                     var $proof = $this.find("a[href*='scope=reddit']:contains('Proof')")
@@ -153,58 +154,56 @@ var Reddit = (function () {
                 var $span = $("<span class='userattrs'></span>");
                 $span.append($alink);
     
-                user.$htmlContainers[i].find('p.tagline a.id-'+user.Id).after($span);
+                user.$htmlContainers[i].find('p.tagline a.id-'+user.id).after($span);
             }
             
         }
     };
 
-    Reddit.prototype.QueryTrustchain = function()
-    {
+
+    Reddit.prototype.QueryChain = function() {
+        var self = this;
         ResolveTarget(this.users, this.settings).done(function (result) {
-            if (result) {
-                var parser = new QueryParser(result);
-                
-                for (var name in users) {
-                    var author = users[name];
-                    var user = author.user;
-                    var id = (user.id) ? user.id : user.contentid;
-                    //var objId = new tce.buffer.Buffer(id, 'HEX');
-                    var idbase64 = id.toString("base64");
-                    if (user.content == "chakhabona") {
-                        if (idbase64 == "115omNV0gUFepSumPYO61Y2Ecic=") {
-                            console.log(idbase64);
-                        }
-                    }
-                    var node = parser.FindById(idbase64);
-                    if (node) {
-                        var $thing = author.$element.closest("div[data-author='" + name + "']");
-                        if (node.claim.trust) {
-                            if (settings.trustrender == "color")
-                                $thing.css("background-color", "lightgreen");
-
-                            if (settings.trustrender == "icon")
-                                $thing.css("background-color", "lightgreen");
-                        } else 
-                        {
-                            if (settings.resultrender == "warning")
-                                $thing.css("background-color", "pink");
-
-                            if (settings.resultrender == "hide")
-                                $thing.hide();
-                        }
-                    }
-                }
-
-                //var jsonString = JSON.stringify(result);
-                //console.log(jsonString);
-                //$parent.css("background-color", "lightgrey");
-
+            if (!result || result.status != "Success") {
+                alert(result.message);
+                return;
             }
-            else {
-                //var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-                //$trustthis.iframeDialog(CreateDialogOptions(target));
-                //$parent.append($trustthis);
+
+            var package = result.data;
+            var parser = new PackageParser(package);
+            for (var authorName in self.users) {
+                var user = self.users[authorName];
+
+                var address = user.nameTarget.contentid.toJSON();
+                var target = parser.targets[address];
+                //if(!target) continue;
+                
+                //var claimAnalysis = parser.claimAnalysis(target);
+                //var color = (claimAnalysis.trust == 100) ? "lightgreen": "lightpink";
+                var color = (authorName == "trustchain") ? "lightgreen" : "lightpink";
+                for(var htmlIndex in user.$htmlContainers)
+                {
+                    var $value = user.$htmlContainers[htmlIndex];
+                    $value.css("background-color", color);
+                }
+                // var node = parser.FindById(idbase64);
+                // if (node) {
+                //     var $thing = author.$element.closest("div[data-author='" + name + "']");
+                //     if (node.claim.trust) {
+                //         if (settings.trustrender == "color")
+                //             $thing.css("background-color", "lightgreen");
+
+                //         if (settings.trustrender == "icon")
+                //             $thing.css("background-color", "lightgreen");
+                //     } else 
+                //     {
+                //         if (settings.resultrender == "warning")
+                //             $thing.css("background-color", "pink");
+
+                //         if (settings.resultrender == "hide")
+                //             $thing.hide();
+                //     }
+                // }
             }
         });
     }
@@ -219,6 +218,7 @@ settingsController.loadSettings(function (settings) {
 
     reddit.RenderLinks();
     reddit.EnableProof();
+    reddit.QueryChain();
 });
 
 /*

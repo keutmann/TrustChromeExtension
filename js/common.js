@@ -272,7 +272,7 @@ function ResolveTarget(users, settings) {
     var query = BuildQuery(users, settings);
     var data = JSON.stringify(query);
 
-    var rurl = settings.infoserver + '/api/query/';
+    var rurl = settings.infoserver + '/api/graph/Query';
     $.ajax({
         type: "POST",
         url: rurl,
@@ -292,10 +292,12 @@ function ResolveTarget(users, settings) {
 
 function BuildQuery(users, settings) {
     var subjects = [];
+    var scope = "";
     for (var authorName in users) {
-        var user = target[authorName];
+        var user = users[authorName];
         var subject = { id: user.contentid };
         subjects.push(subject);
+        scope = user.nameTarget.scope;
     }
 
     var obj = {
@@ -303,7 +305,7 @@ function BuildQuery(users, settings) {
         "subjects": subjects,
 
         // Scope is used to filter on trust resolvement. It can be any text
-        "claimScope": (target.scope) ? target.scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
+        "claimScope": (scope) ? scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
 
         // Claim made about the subject. The format is specified by the version property in the header section.
         "claimTypes": [
@@ -339,18 +341,20 @@ var PackageParser = (function() {
         this.targets = [];
 
         var trusts = package.trusts;
-        for(trust in trusts)
+        for(var trustIndex in trusts)
         {
+            var trust = trusts[trustIndex];
             
-            for(subject in trust.subjects)
+            for(var subjectIndex in trust.subjects)
             {
-                var target = targets[subject.address];
+                var subject = trust.subjects[subjectIndex];
+                var target = this.targets[subject.address];
                 if(!target) {
                     target = subject;
                     target.issuers = [];
                     target.aliases = [];
                     target.claims = [];
-                    targets[subject.address] = target;
+                    this.targets[subject.address] = target;
                 } 
 
                 // Add claims
@@ -367,7 +371,7 @@ var PackageParser = (function() {
                         target.claims.push(trust.claims[claimIndex]);
                 }
 
-                if(!subject.alias)
+                if(subject.alias)
                     target.aliases.push(subject.alias);
 
                 target.issuers[trust.issuer.address] = trust.issuer;
@@ -377,7 +381,30 @@ var PackageParser = (function() {
 
     }
 
-    // PackageParser.prototype.
+    PackageParser.prototype.claimAnalysis = function(target) {
+        var result = {
+            "trusttrue" : 0,
+            "trustfalse" : 0,
+            "trust" : 0,    // %
+            "type" : []
+        };
+        for(var i in target.claims) {
+            var claim = target.claims[i];
+            
+            if(claim.type === "binarytrust.tc1") {
+                var obj = JSON.parse(claim.data);
+                if(obj.trust === true) 
+                    result.trusttrue++;
+                 else
+                    result.trustfalse++;
+            }
+            result.type[claim.type].push(claim);
+        }
+        var total = result.trusttrue + result.trustfalse;
+        result.trust = Math.floor((result.trusttrue * 100) / total);
+
+        return result;
+    }
 
     return PackageParser;
 }());
