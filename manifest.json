@@ -22,10 +22,8 @@
     "http://trust.dance/",
     "https://trust.dance/"
   ],
-  "background": {
-    "persistent": false,
-    "scripts": [ "js/jquery-2.0.3.min.js", "js/background.js" ]
-  },
+  
+
   "content_scripts": [
     {
       "matches": [ "*://*.reddit.com/*" ],
@@ -34,11 +32,14 @@
         "css/jquery-ui-custom.css"
       ],
       "js": [
-        "js/jquery-2.0.3.min.js",
+        "lib/jquery/jquery-2.0.3.min.js",
         "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
-        "js/jquery.iframeDialog.js",
         "lib/bitcoinjs/bitcoin.js",
         "js/common.js",
+        "js/SettingsController.js",
+        "js/TrustchainService.js",
+        "js/PackageBuilder.js",
+        "js/PackageParser.js",
         "js/reddit.js"
       ],
       "run_at": "document_end"

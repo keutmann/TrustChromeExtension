@@ -1,4 +1,4 @@
-
+/*
 var currentWindow = null;
 
 chrome.runtime.onMessage.addListener(function(request) {
@@ -37,7 +37,7 @@ function OpenDialog(request)
         console.log(error);
     }
 }
-
+*/
 /*
 
 // Set up context menu tree at install time.
