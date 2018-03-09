@@ -52,35 +52,38 @@ var PackageBuilder = (function() {
         trust.issuerSignature = tce.bitcoin.message.sign(this.settings.keyPair, id);
     }
 
-
-
- /*   PackageBuilder.prototype.calculateTrustId = function(trust) {
+    PackageBuilder.prototype.CalculateTrustId = function(trust) {
         var buf = new tce.buffer.Buffer(1024 * 256); // 256 Kb
         var offset = 0;
-        offset = trust.issuer.id.copy(buf, offset, 0, trust.issuer.address.length);
+        if(trust.issuerScript)
+            offset += buf.write(trust.issuerScript.toLowerCase(), offset);
 
-        for (k in trust.issuer.subject) {
-            var s = trust.issuer.subject[k];
+        if(trust.issuerAddress)
+            offset += trust.issuerAddress.copy(buf, offset, 0, trust.issuerAddress.length);
 
-            offset += s.id.copy(buf, offset, 0, s.id.length); // Bytes!
+        if(trust.subjectScript)
+            offset += buf.write(trust.subjectScript.toLowerCase(), offset);
 
-            for (var c in s.claim) {
-                if (!s.claim.hasOwnProperty(c))
-                    continue;
+        if(trust.subjectAddress)
+            offset += trust.subjectAddress.copy(buf, offset, 0, trust.subjectAddress.length); // Bytes!
 
-                offset += buf.write(c.toLowerCase(), offset); // Default UTF8
-                offset += buf.write(s.claim[c].toString().toLowerCase(), offset);
-            }
-            offset = buf.writeInt32LE(s.cost, offset);
-            offset = buf.writeInt32LE(s.activate, offset);
-            offset = buf.writeInt32LE(s.expire, offset);
-            offset += buf.write(s.scope.toLowerCase(), offset);
-        }
+        if(trust.type)
+            offset += buf.write(trust.type.toLowerCase(), offset);
+
+        if(trust.scope)
+            offset += buf.write(trust.scope.toLowerCase(), offset);
+
+        if(trust.attributes)
+            offset += buf.write(trust.attributes, offset);
+
+        offset = buf.writeInt32LE(trust.cost, offset);
+        offset = buf.writeInt32LE(trust.activate, offset);
+        offset = buf.writeInt32LE(trust.expire, offset);
 
         var data = new tce.buffer.Buffer(offset);
         buf.copy(data, 0, 0, offset);
-        trust.trustid = tce.bitcoin.crypto.hash256(data); 
-    }*/
+        trust.id = tce.bitcoin.crypto.hash256(data); 
+    }
 
     return PackageBuilder;
 }())
