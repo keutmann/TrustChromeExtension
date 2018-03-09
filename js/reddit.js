@@ -2,81 +2,7 @@
 
 //var modalUrl = chrome.extension.getURL("redditmodal.html");
 //var imageUrl = chrome.extension.getURL("img/Question_blue.png");
-var PackageParser = (function() {
-    function  PackageParser(package) {
-        var self = this;
 
-        this.package = package;
-        this.targets = [];
-
-        var trusts = package.trusts;
-        for(var trustIndex in trusts)
-        {
-            var trust = trusts[trustIndex];
-            
-            for(var subjectIndex in trust.subjects)
-            {
-                var subject = trust.subjects[subjectIndex];
-                var target = this.targets[subject.address];
-                if(!target) {
-                    target = subject;
-                    target.issuers = [];
-                    target.aliases = [];
-                    target.claims = [];
-                    this.targets[subject.address] = target;
-                } 
-
-                // Add claims
-                if(!subject.claimIndexs || subject.claimIndexs.length == 0)
-                {  // If not claim index exist, default is Trust true
-                    target.cliams.push({
-                            "index": 0,
-                            "type": "binarytrust.tc1",
-                            "data": "{\"trust\":true}",
-                            "cost": 100
-                          });    
-                } else {
-                    for(claimIndex in subject.claimIndexs) 
-                        target.claims.push(trust.claims[claimIndex]);
-                }
-
-                if(subject.alias)
-                    target.aliases.push(subject.alias);
-
-                target.issuers[trust.issuer.address] = trust.issuer;
-            }
-            
-        }
-
-    }
-
-    PackageParser.prototype.claimAnalysis = function(target) {
-        var result = {
-            "trusttrue" : 0,
-            "trustfalse" : 0,
-            "trust" : 0,    
-            "type" : []
-        };
-        for(var i in target.claims) {
-            var claim = target.claims[i];
-            
-            if(claim.type === "binarytrust.tc1") {
-                var obj = JSON.parse(claim.data);
-                if(obj.trust === true) 
-                    result.trusttrue++;
-                 else
-                    result.trustfalse++;
-            }
-            result.type[claim.type].push(claim);
-        }
-        var total = result.trusttrue + result.trustfalse;
-        result.trust = Math.floor((result.trusttrue * 100) / total);
-
-        return result;
-    }
-
-    return PackageParser;
-}());
 
 
 var Reddit = (function () {
@@ -86,39 +12,34 @@ var Reddit = (function () {
         self.targets = [];
         this.packageBuilder = packageBuilder;
         self.trustchainService = trustchainService;
-    
-        // Function -----------------------
-        self.buildUserList = function() {
 
-            $("div.thing[data-author]").each(function () {
+        $("div.thing[data-author]").each(function () {
 
-                var $this = $(this);
-                var authorName = $this.data("author");
+            var $this = $(this);
+            var authorName = $this.data("author");
 
-                var user = self.targets[authorName];
-                if(!user) {
-                    user = {};
-                    user.$htmlContainers = []; 
-                    user.authorName = authorName;
-                    user.thingId = $this.data("author-fullname");
-                    user.address = authorName.hash160(); // array of bytes (Buffer)
-                    user.scope = window.location.hostname;
-                    self.targets[authorName] = user;
+            var user = self.targets[authorName];
+            if(!user) {
+                user = {};
+                user.$htmlContainers = []; 
+                user.authorName = authorName;
+                user.thingId = $this.data("author-fullname");
+                user.address = authorName.hash160(); // array of bytes (Buffer)
+                user.scope = window.location.hostname;
+                self.targets[authorName] = user;
+            }
+
+            user.$htmlContainers.push($this);
+
+            if(!user.identity) {
+                var $proof = $this.find("a[href*='scope=reddit']:contains('Proof')")
+                if ($proof.length > 0) {
+                    var query = getQueryParams($proof.attr("href"));
+                    if(query.name == user.authorName) 
+                        user.identity = query;
                 }
-
-                user.$htmlContainers.push($this);
-
-                if(!user.identity) {
-                    var $proof = $this.find("a[href*='scope=reddit']:contains('Proof')")
-                    if ($proof.length > 0) {
-                        var query = getQueryParams($proof.attr("href"));
-                        if(query.name == user.authorName) 
-                            user.identity = query;
-                    }
-                }
-            });
-        }
-
+            }
+        });
     }
 
     Reddit.prototype.VerifyProof = function(id, sig, target) {
@@ -197,6 +118,7 @@ var Reddit = (function () {
                         var $area = $(this).closest("form").find("textarea");
                         EnsureProof($area);
                         $area.css('visibility', 'hidden');
+
                         return true;
                     });
                 });
@@ -214,101 +136,126 @@ var Reddit = (function () {
         observer.observe(targetNode, observerConfig);
     }
 
-    Reddit.prototype.RenderLinks = function () {
-        var self = this;
-        if(this.targets.length == 0)
-            this.buildUserList();
+    Reddit.prototype.RenderLinks = function (parser) {
+        this.CreateLink = function(user, text, value, expire) {
+            var $alink = $("<a title='trust me' href='#'>["+text+"]</a>");
+            $alink.data("user",user);
+            $alink.click(function() {
+                var user = $(this).data("user");
+                self.BuildAndSubmitBinaryTrust(user, value, expire);
+            });
+            return $alink;
+        }
 
+        var self = this;
         for(var authorName in this.targets) {
             var user = this.targets[authorName];
-            for(var i in user.$htmlContainers) {
-                var $alink = $("<a title='trust me' href='#'>[Trust me]</a>");
-                $alink.data("user",user);
-                $alink.click(function() {
-                    var user = $(this).data("user");
-                    console.log(user.authorName);
-                    self.SubmitBinaryTrust(user, true);
-                });
-                
-                var $span = $("<span class='userattrs'></span>");
-                $span.append($alink);
-    
-                user.$htmlContainers[i].find('p.tagline a.id-'+user.thingId).after($span);
+            var addressBase64 = user.address.toJSON();
+            var target = parser.targets[addressBase64];
+
+            var $tagLine = $('p.tagline a.id-'+user.thingId);
+
+            if(target) 
+            {
+                var claimAnalysis = parser.claimAnalysis(target);
+                var color = (claimAnalysis.trust == 100) ? "#EEFFDD": "lightpink";
+                $tagLine.parent().parent().css("background-color", color);
             }
+
+            var $span = $("<span class='userattrs'></span>");
+            var tt = self.CreateLink(user, "Trust", true, 0);
+            $span.append(tt);
+            $span.append(self.CreateLink(user, "Distrust", false, 0));
+            $span.append(self.CreateLink(user, "Untrust", true, 1));
+            $('p.tagline a.id-'+user.thingId).after($span);
             
         }
     };
+
+    Reddit.prototype.CreateLink = 
+
 
     Reddit.prototype.CreateBinaryTrust = function(user, value) {
         // Build trust
         var trust = this.packageBuilder.CreateBinaryTrust(this.settings.publicKeyHash, 
             "btc-pkh", 
             user.address, 
-            user.authorName, 
             value, 
             user.scope);
 
+        var package = this.packageBuilder.CreatePackage(trust);
+
         if(user.identity) {
-            var claim = trust.claims[0];
-            var publicKey = new tce.buffer.Buffer((user.identity.pk || user.identity.id), 'HEX');
-            var address = tce.bitcoin.crypto.hash160(publicKey); 
-            var subject = this.packageBuilder.CreateSubject(address, user.authorName, [claim.index]);
-            trust.subjects.push(subject);
+            var subjectPublicKey = new tce.buffer.Buffer((user.identity.pk || user.identity.id), 'HEX');
+
+            var trust2 = this.packageBuilder.CreateBinaryTrust(this.settings.publicKeyHash, 
+                "btc-pkh", 
+                tce.bitcoin.crypto.hash160(subjectPublicKey), 
+                value, 
+                user.scope);
+
+            package.trusts.push(trust2);
         }
-        return trust;
+        return package;
     }
 
     Reddit.prototype.BuildBinaryTrust = function(user, value) {
         var deferred = $.Deferred();
         var self = this;
-        var trust = this.CreateBinaryTrust(user,value);
-        this.trustchainService.PostTrustTemplate(trust).done(function(result) {
-            trust.id = (typeof result.data.id === 'string') ? new tce.buffer.Buffer(result.data.id, 'base64') : result.data.id;
-            self.packageBuilder.SignTrust(trust);
-            deferred.resolve(trust);
+        var package = this.CreateBinaryTrust(user,value);
+        this.trustchainService.PostTrustTemplate(package).done(function(result) {
+            var resultPackage = result.data; 
+            for(var rIndex in resultPackage.trusts) 
+            {
+                var trust = resultPackage.trusts[rIndex];
+                self.packageBuilder.SignTrust(trust);
+            }
+            deferred.resolve(resultPackage);
         });
 
         return deferred.promise();
     }
 
-    Reddit.prototype.SubmitBinaryTrust = function(user, value) {
+    Reddit.prototype.BuildAndSubmitBinaryTrust = function(user, value, expire) {
         var self = this;
-        self.BuildBinaryTrust(user,value).done(function(trust) {
-            self.trustchainService.PostTrust(trust).done(function(trustResult){
-                console.log("Posting trust is a "+trustResult.status);
+        self.BuildBinaryTrust(user,value, expire).done(function(package) {
+            self.SubmitBinaryTrust(package).done(function(trustResult){
+                console.log("Posting package is a "+trustResult.status);
             });
         });
 
     }
 
+    Reddit.prototype.SubmitBinaryTrust = function(package) {
+        return this.trustchainService.PostPackage(package).done(function(trustResult){
+            console.log("Posting package is a "+trustResult.status);
+        });
+    }
+
+
     Reddit.prototype.QueryChain = function() {
+        var deferred = $.Deferred();
+
         var self = this;
 
         self.trustchainService.Query(this.targets).done(function (result) {
             if (!result || result.status != "Success") {
                 alert(result.message);
+                deferred.fail();
                 return;
             }
 
-            var package = result.data;
-            var parser = new PackageParser(package);
-            for (var authorName in self.targets) {
-                var user = self.targets[authorName];
+            var package = result.data.results;
+            if(!package) 
+                package = { trusts: [] };
 
-                var addressBase64 = user.address.toJSON();
-                var target = parser.targets[addressBase64];
-                if(!target) continue;
-                
-                var claimAnalysis = parser.claimAnalysis(target);
-                var color = (claimAnalysis.trust == 100) ? "lightgreen": "lightpink";
-                //var color = (authorName == "trustchain") ? "lightgreen" : "lightpink";
-                for(var htmlIndex in user.$htmlContainers)
-                {
-                    var $value = user.$htmlContainers[htmlIndex];
-                    $value.css("background-color", color);
-                }
-            }
+            var parser = new PackageParser(package);
+            self.queryResult = parser;
+
+            deferred.resolve(parser);
         });
+
+        return deferred.promise();
     }
 
     return Reddit;
@@ -321,152 +268,8 @@ settingsController.loadSettings(function (settings) {
     var trustchainService = new TrustchainService(settings);
     var reddit = new Reddit(settings,  packageBuilder, trustchainService);
 
-    reddit.RenderLinks();
     reddit.EnableProof();
-    reddit.QueryChain();
+    reddit.QueryChain().done(function(parser) {
+        reddit.RenderLinks(parser);
+    });
 });
-
-/*
-
-    function ProcessThings() {
-
-        ResolveTarget(users, settings).done(function (result) {
-            if (result) {
-                var parser = new QueryParser(result);
-                
-                for (var name in users) {
-                    var author = users[name];
-                    var user = author.user;
-                    var id = (user.id) ? user.id : user.contentid;
-                    //var objId = new tce.buffer.Buffer(id, 'HEX');
-                    var idbase64 = id.toString("base64");
-                    if (user.content == "chakhabona") {
-                        if (idbase64 == "115omNV0gUFepSumPYO61Y2Ecic=") {
-                            console.log(idbase64);
-                        }
-                    }
-                    var node = parser.FindById(idbase64);
-                    if (node) {
-                        var $thing = author.$element.closest("div[data-author='" + name + "']");
-                        if (node.claim.trust) {
-                            if (settings.trustrender == "color")
-                                $thing.css("background-color", "lightgreen");
-
-                            if (settings.trustrender == "icon")
-                                $thing.css("background-color", "lightgreen");
-                        } else 
-                        {
-                            if (settings.resultrender == "warning")
-                                $thing.css("background-color", "pink");
-
-                            if (settings.resultrender == "hide")
-                                $thing.hide();
-                        }
-                    }
-                }
-
-                //var jsonString = JSON.stringify(result);
-                //console.log(jsonString);
-                //$parent.css("background-color", "lightgrey");
-
-            }
-            else {
-                //var $trustthis = $('<span class="trustthis"> -> <a href="#">Trust this</a></span>');
-                //$trustthis.iframeDialog(CreateDialogOptions(target));
-                //$parent.append($trustthis);
-            }
-        });
-    }
-*/
-/*
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    switch (request.type) {
-        case "openModal":
-            var info = JSON.parse(request.content);
-            if(!info.linkUrl)
-                return;
-
-            var authorName = info.linkUrl.split('/').pop();
-            var author = users[authorName];
-
-            $(selectedElement).openIframeDialog(CreateDialogOptions(author.user));
-
-            //var target = CreateTarget(content);
-            //if (!info.selectionText)
-            //    target.type = "url";
-
-            //var $proof = $("a[href*='&scope=reddit']:contains('Proof')").first();
-            //if ($proof.length > 0) {
-            //    var href = $proof.attr("href").split("&");
-            //    for (key in href) {
-            //        var part = href[key];
-            //        var p = part.split("=");
-            //        target[p[0]] = p[1];
-            //    }
-            //}
-
-            //target.address = GetTargetAddress(target);
-
-
-            console.log(request.content);
-            //console.log(JSON.stringify(selectedElement));
-            break;
-    }
-
-});
-
-window.addEventListener('message', function (event) {
-    if (event.data.type == "modalTrustIssue") {
-        settingsController.loadSettings(function (settings) {
-            settingsController.buildKey(settings);
-
-            var trustpackage = BuildPackage(settings, event.data.target);
-            var data = JSON.stringify(trustpackage);
-            var rurl = settings.graphserver + '/api/trust/';
-            $.ajax({
-                type: "POST",
-                url: rurl,
-                data: data,
-                contentType: 'application/json; charset=utf-8',
-                dataType: 'json'
-            }).done(function (msg, textStatus, jqXHR) {
-
-            }).fail(function (jqXHR, textStatus, errorThrown) {
-                TrustServerErrorAlert(jqXHR, textStatus, errorThrown, settings.graphserver);
-            }).always(function () {
-                $(selectedElement).dialog("close");
-            });
-        });
-    }
-});
-
-function CreateDialogOptions(target) {
-    return {
-        // iframeDialog options 
-        //id: 'iframeDialogTest',
-        data: target,
-        url: modalUrl,
-        scrolling: 'no',
-        // jquery UI Dialog options 
-        title: 'Trust',
-        modal: true,
-        //resizable: true,
-        width: 'auto',
-        height: 'auto',
-        buttons: {
-            OK: function () {
-                var contentWindow = $(this).find("iframe").get(0).contentWindow;
-                if (!contentWindow)
-                    return;
-
-                selectedElement = this;
-                $(this).parent().find(".ui-dialog-buttonset button").prop("disabled", true);
-                contentWindow.postMessage({ type: "Issue", target: target }, "*");
-            },
-            Cancel: function () {
-                $(this).dialog("close");
-            }
-        }
-    }
-}
-*/

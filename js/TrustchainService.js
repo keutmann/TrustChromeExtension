@@ -38,7 +38,6 @@ var TrustchainService = (function() {
     }
 
     TrustchainService.prototype.GetTrustTemplate = function(subject, alias) {
-        //url +='?issuer='+settings.publicKeyHash+'&subject='+user.nameTarget.contentid+'&alias='+user.nameTarget.content;
         var url ='/api/trust/build?issuer='+settings.publicKeyHash+'&subject='+subject+'&alias='+alias;
     
         return this.GetData(url);
@@ -48,8 +47,16 @@ var TrustchainService = (function() {
         return this.PostData('/api/trust/build', JSON.stringify(trust));
     }
 
+    TrustchainService.prototype.PostTrustTemplate = function(package) {
+        return this.PostData('/api/package/build', JSON.stringify(package));
+    }
+
     TrustchainService.prototype.PostTrust = function(trust) {
-        return this.PostData('/api/graph/trust', JSON.stringify(trust));
+        return this.PostData('/api/trust/add', JSON.stringify(trust));
+    }
+
+    TrustchainService.prototype.PostPackage = function(package) {
+        return this.PostData('/api/package/add', JSON.stringify(package));
     }
 
 

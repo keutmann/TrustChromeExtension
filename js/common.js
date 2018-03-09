@@ -79,22 +79,7 @@ function GetTargetAddress(target) {
     return address;
 }
 
-function GetAddress(id, sig, target) {
-    var objId = new tce.buffer.Buffer(id, 'HEX');
-    var linkKeyPair = tce.bitcoin.ECPair.fromPublicKeyBuffer(objId);
 
-    var objSig = new tce.buffer.Buffer(sig, 'HEX');
-    var targetID = new tce.buffer.Buffer(target, 'HEX');
-    var ecSig = tce.bitcoin.ECSignature.fromDER(objSig);
-
-    if (!linkKeyPair.verify(targetID, ecSig)) {
-        console.log("Invalid signature on id : " + objId.toString('HEX'));
-        Alert("Invalid signature on id : " + objId.toString('HEX'));
-        return;
-    }
-
-    return tce.bitcoin.crypto.hash160(objId);
-}
 
 // Create a hash160 of a string
 String.prototype.hash160 = function() {

@@ -5,76 +5,51 @@ var PackageBuilder = (function() {
         this.BINARYTRUST_TC1 = "binarytrust.tc1";
         this.CONFIRMTRUST_TC1 = "confirm.tc1";
         this.RATING_TC1 = "rating.tc1";
+        this.IDENTITY_TC1 = "identity.tc1";
 
     }
 
 
     PackageBuilder.prototype.CreatePackage = function(trust) {
         var package = {
-            trust: [trust]
+            trusts: [trust]
         }
         return package;
     }
 
-    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, alias, value, scope)
+    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, scope)
     {
-        var trust = this.CreateTrust(issuer, script);
-        var claim = this.CreateTrustClaim(value, scope);
-        var subject = this.CreateSubject(subject, alias, [claim.index]);
-        trust.subjects.push(subject);
-        trust.claims.push(claim);
-        return trust;
-    }
-
-
-    PackageBuilder.prototype.CreateTrustClaim = function(value, scope) {
         var attributes = { trust: value }
-        var claim = this.CreateClaim(0, this.BINARYTRUST_TC1, JSON.stringify(attributes), scope);
-        return claim;
-    }
-
-
-    PackageBuilder.prototype.CreateTrust = function(address, script)  {
-        var trust = {
-            issuer: {
-                script: script,
-                address: address
-            },
-            subjects: [],
-            claims: []
-        }
+        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(attributes));
         return trust;
     }
 
-    PackageBuilder.prototype.CreateSubject = function(address, alias, claimIndexs) {
-        var subject = {
-            address: address,
-            alias: alias,
-            claimIndexs: claimIndexs
-        }
-        return subject;
+    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, alias, scope)
+    {
+        var attributes = { alias: value }
+        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(attributes));
+        return trust;
     }
 
-    PackageBuilder.prototype.CreateClaim = function(index, type, attributes, scope) {
-        var claim = {
-            index: index,
+    PackageBuilder.prototype.CreateTrust = function(issuer, script, subject, type, scope, attributes)  {
+        var trust = {
+            issuerScript: script,
+            issuerAddress: issuer,
+            subjectAddress: subject,
             type: type,
-            attributes: attributes,
             scope: scope,
+            attributes: attributes,
             cost: 100,
             activate: 0,
             expire: 0,
             note: ""
         }
-        return claim;
+        return trust;
     }
-
-
-    
 
     PackageBuilder.prototype.SignTrust = function(trust) {
         var id = (typeof trust.id === 'string') ? new tce.buffer.Buffer(trust.id, 'base64') : trust.id;
-        trust.issuer.signature = tce.bitcoin.message.sign(this.settings.keyPair, id);
+        trust.issuerSignature = tce.bitcoin.message.sign(this.settings.keyPair, id);
     }
 
 
