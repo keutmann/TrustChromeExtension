@@ -54,12 +54,7 @@ var TrustchainService = (function() {
     TrustchainService.prototype.PostTrust = function(trust) {
         return this.PostData('/api/trust/add', JSON.stringify(trust));
     }
-
-    TrustchainService.prototype.PostPackage = function(package) {
-        return this.PostData('/api/package/add', JSON.stringify(package));
-    }
-
-
+    
     TrustchainService.prototype.GetData = function(query) {
         var deferred = $.Deferred();
         var self = this;

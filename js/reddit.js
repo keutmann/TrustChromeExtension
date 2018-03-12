@@ -172,13 +172,15 @@ var Reddit = (function () {
         }
     };
 
-    Reddit.prototype.CreateBinaryTrust = function(user, value) {
+    Reddit.prototype.CreateBinaryTrust = function(user, value, expire) {
         // Build trust
         var trust = this.packageBuilder.CreateBinaryTrust(this.settings.publicKeyHash, 
             "btc-pkh", 
             user.address, 
             value, 
-            user.scope);
+            user.scope,
+            0,
+            expire);
 
         var package = this.packageBuilder.CreatePackage(trust);
 
@@ -189,17 +191,17 @@ var Reddit = (function () {
                 "btc-pkh", 
                 tce.bitcoin.crypto.hash160(subjectPublicKey), 
                 value, 
-                user.scope);
-
+                user.scope,
+                0,
+                expire);
             package.trusts.push(trust2);
         }
         return package;
     }
 
-    Reddit.prototype.BuildBinaryTrust = function(user, value) {
-        //var deferred = $.Deferred();
+    Reddit.prototype.BuildBinaryTrust = function(user, value, expire) {
         var self = this;
-        var package = this.CreateBinaryTrust(user,value);
+        var package = this.CreateBinaryTrust(user,value, expire);
 
         for(var trustIndex in package.trusts) {
             var trust = package.trusts[trustIndex];
@@ -207,17 +209,6 @@ var Reddit = (function () {
             self.packageBuilder.SignTrust(trust);
         }
         return package;
-        // this.trustchainService.PostTrustTemplate(package).done(function(result) {
-        //     var resultPackage = result.data; 
-        //     for(var rIndex in resultPackage.trusts) 
-        //     {
-        //         var trust = resultPackage.trusts[rIndex];
-        //         self.packageBuilder.SignTrust(trust);
-        //     }
-        //     deferred.resolve(resultPackage);
-        // });
-
-        // return deferred.promise();
     }
 
     Reddit.prototype.BuildAndSubmitBinaryTrust = function(user, value, expire) {
@@ -229,7 +220,7 @@ var Reddit = (function () {
     }
 
     Reddit.prototype.SubmitBinaryTrust = function(package) {
-        return this.trustchainService.PostPackage(package).done(function(trustResult){
+        return this.trustchainService.PostTrust(package).done(function(trustResult){
             console.log("Posting package is a "+trustResult.status);
         });
     }

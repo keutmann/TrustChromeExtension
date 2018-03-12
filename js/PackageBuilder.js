@@ -17,31 +17,31 @@ var PackageBuilder = (function() {
         return package;
     }
 
-    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, scope)
+    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, scope, activate, expire)
     {
         var attributes = { trust: value }
-        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(attributes));
+        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(attributes), activate, expire);
         return trust;
     }
 
-    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, alias, scope)
+    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, alias, scope, activate, expire)
     {
         var attributes = { alias: value }
-        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(attributes));
+        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(attributes), activate, expire);
         return trust;
     }
 
-    PackageBuilder.prototype.CreateTrust = function(issuer, script, subject, type, scope, attributes)  {
+    PackageBuilder.prototype.CreateTrust = function(issuer, script, subject, type, scope, attributes, activate, expire)  {
         var trust = {
             issuerScript: script,
             issuerAddress: issuer,
             subjectAddress: subject,
             type: type,
-            scope: scope,
-            attributes: attributes,
+            scope: (scope) ? scope: "",
+            attributes: (attributes) ? attributes : "",
             cost: 100,
-            activate: 0,
-            expire: 0,
+            activate: (activate) ? activate: 0,
+            expire: (expire) ? expire: 0,
             note: ""
         }
         return trust;
@@ -49,7 +49,8 @@ var PackageBuilder = (function() {
 
     PackageBuilder.prototype.SignTrust = function(trust) {
         var id = (typeof trust.id === 'string') ? new tce.buffer.Buffer(trust.id, 'base64') : trust.id;
-        trust.issuerSignature = tce.bitcoin.message.sign(this.settings.keyPair, id);
+        //trust.issuerSignature = tce.bitcoin.message.sign(this.settings.keyPair, id);
+        trust.issuerSignature = this.settings.keyPair.signCompact(id);
     }
 
     PackageBuilder.prototype.CalculateTrustId = function(trust) {
