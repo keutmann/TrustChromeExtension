@@ -63,22 +63,18 @@ var Reddit = (function () {
         var self = this;
 
         function BuildProof(settings, username, content) {
-            var keyPair = settingsController.buildKey(settings);
-                
-            var publicKeyHex = keyPair.getPublicKeyBuffer().toString('HEX');
-            var contentHash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username + content.trim(), 'UTF8'));
-            var ecSig = keyPair.sign(contentHash); // sign needs a sha256
-            var sig = ecSig.toDER().toString('HEX');
-            var contentHex = contentHash.toString('HEX');
+            var hash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username + content.trim(), 'UTF8'));
+            var signatre = settings.keyPair.signCompact(hash); // sign needs a sha256
     
             var proof =
                 ' ([Proof](' + settings.infoserver +
-                '/proof.htm' +
-                '?name=' + username +
-                '&scope=reddit.com' +
-                '&pk=' + publicKeyHex +
-                '&sig=' + sig +
-                '&content=' + contentHex +
+                '/resources/proof.htm' +
+                '?scope=reddit.com' +
+                '&script=btc-pkh' +
+                '&publicKeyHash=' + settings.publicKeyHash.toString('HEX') +
+                '&signature=' + signatre.toString('HEX') +
+                '&hash=' + hash.toString('HEX') +
+                '&name=' + username +
                 ' "' + username + '"))';
     
             return proof;
