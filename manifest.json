@@ -3,6 +3,7 @@
   "description": "Proof of concept of Trustchain UI implementation - Currently only for Reddit. This extension is in alpha and do not provide any security features, no effort has been done to protect your password!",
   "version": "0.1",
   "manifest_version": 2,
+  "author": "Trustchain",
 
   "icons": {
     "16": "img/icon16.png",
@@ -17,23 +18,23 @@
     "default_popup": "extensionpopup.html"
   },
   "permissions": [
-    "contextMenus",
+    "tabs",
     "storage",
     "http://trust.dance/",
     "https://trust.dance/"
   ],
-  
-
+  "background": {
+    "scripts": ["js/background.js"]
+  },
   "content_scripts": [
     {
       "matches": [ "*://*.reddit.com/*" ],
       "css": [
-        "lib/jquery-ui-1.12.1.custom/jquery-ui.min.css",
-        "css/jquery-ui-custom.css"
+        "lib/bootstrap/dist/css/bootstrap.min.css"
       ],
       "js": [
         "lib/jquery/jquery-2.0.3.min.js",
-        "lib/jquery-ui-1.12.1.custom/jquery-ui.min.js",
+        "lib/bootstrap/dist/js/bootstrap.min.js",
         "lib/bitcoinjs/bitcoin.js",
         "js/common.js",
         "js/SettingsController.js",

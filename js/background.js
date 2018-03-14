@@ -1,13 +1,19 @@
-/*
+
+var currentTab = null;
 var currentWindow = null;
+var currentTarget = null;
 
 chrome.runtime.onMessage.addListener(function(request) {
     if (request.command === 'openDialog') {
-        OpenDialog(request);
-        return;
+        GetCurrentWindow(function(window) {
+            if(!window)
+                OpenDialog(request);
+            else
+            {
+                SendMessageToDialog('showTarget', request.data);
+            }
+        });
     }
-
-    
 });
 
 
@@ -18,6 +24,7 @@ function OpenDialog(request)
             url: chrome.extension.getURL(request.url), //'dialog.html'
             active: false
         }, function(tab) {
+            currentTab = tab;
             // After the tab has been created, open a window to inject the tab
             chrome.windows.create({
                 tabId: tab.id,
@@ -31,47 +38,33 @@ function OpenDialog(request)
             }, 
                 function(window) {
                     currentWindow = window;
+                    setTimeout(function() { 
+                        SendMessageToDialog('showTarget', request.data); 
+                    }, 100);
+                    
                 });
         });
     } catch (error) {
         console.log(error);
     }
 }
-*/
-/*
 
-// Set up context menu tree at install time.
-var showForLinks = ["*://*/user/*"];
+function GetCurrentWindow(cb)
+{
+    if(!currentWindow) 
+        cb(null);
+    else
+        chrome.windows.get(currentWindow.id, null, cb);
+}
 
-chrome.runtime.onInstalled.addListener(function () {
-    chrome.contextMenus.create({
-        "title": "Trust",
-        "id": "TrustIssue",
-        "type": "normal",
-        "contexts": ["link"],
-        //"documentUrlPatterns": showForLinks
-    });
-    //chrome.contextMenus.create({
-    //    "title": "Issue",
-    //    "parentId": "TrustID",
-    //    "id": "TrustIssueID",
-    //    "type": "normal",
-    //    "contexts": ["link"]
-    //});
-    //chrome.contextMenus.create({
-    //    "title": "Resolve",
-    //    "parentId": "TrustID",
-    //    "id": "TrustResolveID",
-    //    "type": "normal",
-    //    "contexts": ["link"]
-    //});
+chrome.windows.onRemoved.addListener(function (id) {
+    if(id == currentWindow.id)
+        currentWindow = null;
 });
 
-chrome.contextMenus.onClicked.addListener(function (info, tab) {
-    if (info.menuItemId.indexOf("TrustIssue") > -1) {
-        //chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            chrome.tabs.sendMessage(tab.id, { type: "openModal", content: JSON.stringify(info) });
-        //});
-    }
-});
-*/
+function SendMessageToDialog(command, target, cb) 
+{
+    chrome.tabs.sendMessage(currentTab.id, { command: command, data: target}, cb);
+    //chrome.tabs.update(currentTab.id, {active: true});
+    chrome.windows.update(currentWindow.id, {focused:true });
+}

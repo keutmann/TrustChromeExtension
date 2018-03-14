@@ -8,8 +8,8 @@ var SettingsController = (function() {
                 "seed": '',
                 "rememberme": true,
                 "infoserver": "https://trust.dance",
-                "buildserver": "https://trust.dance:12701",
-                "graphserver": "https://trust.dance:12702",
+                // "buildserver": "https://trust.dance:12701",
+                // "graphserver": "https://trust.dance:12702",
                 'trustrender': 'icon',
                 "resultrender": 'warning'
                 //"keypair": null
@@ -27,7 +27,7 @@ var SettingsController = (function() {
     
         this.loadSettings = function (cb) {
             chrome.storage.local.get('usersettings', function (result) {
-                var settings = (result.targetsettings) ? result.targetsettings : self.createSettings();
+                var settings = (result.usersettings) ? result.usersettings : self.createSettings();
                 self.buildKey(settings);
                 cb(settings);
             });

@@ -3,7 +3,6 @@ var controller = new SettingsController();
 // Onload
 $(function () {
     controller.loadSettings(function (items) {
-        controller.buildKey(items);
         BindSettings(items);
     });
 });
