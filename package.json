@@ -5,6 +5,8 @@
         "include": [
             "jquery"
         ]
+    },
+    "dependencies": {
+        "identicon.js": "^2.3.1"
     }
-
 }

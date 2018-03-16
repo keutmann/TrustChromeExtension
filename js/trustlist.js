@@ -4,26 +4,69 @@
 
 //https://www.reddit.com/user/trustchain/.json
 
-// Onload
-$(function () {
-    // settingsController.loadSettings(function (items) {
-    //     settings = items;
-    // });
-    //window.parent.postMessage({ type: "getTrustListData" }, "*");
+var app = angular.module("myApp", []);
+app.controller("trustlistCtrl", function($scope) {
+
+    $scope.subject = null;
+    $scope.targets = null;
+
+
+    $scope.load = function(subject) {
+        $scope.subject = subject;
+
+        $scope.subject.addressHex = (new tce.buffer.Buffer($scope.subject.address, 'base64')).toString("HEX");
+        $scope.subject.identicoinData = $scope.getIdenticoinData($scope.subject.addressHex);
+
+        for(var index in $scope.subject.trusts.trusts) {
+            var trust = $scope.subject.trusts.trusts[index];
+            trust.identicoinData = $scope.getIdenticoinData(trust.issuerAddress);
+            trust.issuerAddressHex = (new tce.buffer.Buffer(trust.issuerAddress, 'base64')).toString("HEX");
+            trust.alias = "Noname"; 
+            trust.note = "";
+        }
+
+        $scope.$apply();
+
+
+    }
+
+    $scope.getIdenticoinData = function(address) {
+        return new Identicon(address, {margin:0.1, size:64, format: 'svg'}).toString();
+    };
+    
+    $scope.trustClick = function(target) {
+
+        return false;
+    };
+
+    $scope.distrustClick = function(target) {
+        
+        return false;
+    }
+
+    $scope.untrustClick= function(target) {
+        
+        return false;
+    }
+
+
+    chrome.runtime.onMessage.addListener(
+        function(request, sender, sendResponse) {
+          console.log(sender.tab ?
+                      "from a content script:" + sender.tab.url :
+                      "from the extension");
+    
+          if (request.command == "showTarget") {
+                document.getElementById("json").innerHTML = JSON.stringify(request.data, undefined, 2);
+                $scope.load(request.data);
+                sendResponse({result: "ok"});
+                //console.log(JSON.stringify(request.data));
+          }
+        });
+    
 });
 
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-      console.log(sender.tab ?
-                  "from a content script:" + sender.tab.url :
-                  "from the extension");
-
-      if (request.command == "showTarget") {
-            document.getElementById("json").innerHTML = JSON.stringify(request.data, undefined, 2);
-            sendResponse({result: "ok"});
-            //console.log(JSON.stringify(request.data));
-      }
-    });
+// Onload
 
 
 // Listen to the response from main

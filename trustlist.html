@@ -1,10 +1,11 @@
 <!doctype html>
-<html>
+<html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="description" content="">
 
-    <title>Trust Chrome Extension</title>
+    <title>Trust list</title>
 
     <link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <style>
@@ -12,41 +13,87 @@
             font-size: 12px;
             /*margin: 0px;*/
         }
-
-        h4 {
-            font-size: 12px;
-            margin: 0;
-            font-weight: normal;
+        .trustList {
+            padding: 5px;
+        }
+        .trustList th, .trustList td {
+            padding: 5px;
         }
 
-        input[type="radio"] {
-            width: 50px;
+        .trusted {
+            color: green;
         }
-
-        .formdescription {
-            background-color: #efefef;
-            vertical-align:top;
-            width:200px;
+        .distrusted {
+            color: red;
         }
-        .forminput {
-            white-space: nowrap;
+        .untrusted {
         }
-        .radio-label {
-                width: 35px;
-        }
-
-        .subject {
+        .authorName {
             font-weight: bold;
         }
     </style>
-</head>
-
-<body>
-    <h1>Analyse target</h1>
-    <pre id="json"></pre>
-    <script src="lib/jquery/jquery-2.0.3.min.js"></script>
+    <script src="lib/angularJS/angular.min.js"></script>
+    <script src="lib/identiconjs/identicon.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
     <script src="js/common.js"></script>
     <script src="js/trustlist.js"></script>
+</head>
+
+<body ng-app="myApp" ng-controller="trustlistCtrl">
+    <div class="container">
+        <h1>Analyse</h1>
+        <div class="row">
+            <div class="col-xs-12">
+                <h3>Subject</h3>
+                <table class="trustList" >
+                    <tr>
+                        <td>
+                            <img ng-src="data:image/svg+xml;base64,{{ subject.identicoinData }}">
+                        </td>
+                        <td>
+                            Address: {{ subject.addressHex }} - 
+                            <a href="#" ng-click="trustClick(subject);" ng-title="Trust {{ subject.authorName }}">[T]</a>
+                            <a href="#" ng-click="distrustClick(subject);" ng-title="Trust {{ subject.authorName }}">[D]</a>
+                            <a href="#" ng-click="untrustClick(subject);" ng-title="Trust {{ subject.authorName }}">[U]</a>
+                            <br> Alias:<span class="authorName">{{ subject.authorName }}</span>
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="row" ng-hide="false">
+            <div class="col-xs-12">
+                <h3>Trusted by:</h3>
+                <table class="trustList" >
+                    <tr ng-repeat="trust in subject.trusts.trusts">
+                        <td>
+                            <a href="#"><img ng-src="data:image/svg+xml;base64,{{ trust.identicoinData }}"></a>
+                        </td>
+                        <td>
+                            Address: {{ trust.issuerAddressHex }} - 
+                            <a href="#" ng-click="trustClick(trust);" ng-title="Trust {{ trust.alias }}">[T]</a>
+                            <a href="#" ng-click="distrustClick(trust);" ng-title="Trust {{ trust.alias }}">[D]</a>
+                            <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
+                            <br> Alias:<span class="authorName">{{ trust.alias }}</span>
+                            <br> Note: <span>{{ trust.note }}</span>
+                        </td>
+                        <td>
+                            <span class="trusted">???</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="row" ng-hide="true">
+            <div class="col-xs-12">
+                <h3>Distrusted by:</h3>
+                {{ "Nothing here!" }}
+            </div>
+        </div>
+        <pre id="json"></pre>
+    </div>
 </body>
+
 </html>

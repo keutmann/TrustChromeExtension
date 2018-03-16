@@ -35,6 +35,7 @@
       "js": [
         "lib/jquery/jquery-2.0.3.min.js",
         "lib/bootstrap/dist/js/bootstrap.min.js",
+        "lib/identiconjs/identicon.js",
         "lib/bitcoinjs/bitcoin.js",
         "js/common.js",
         "js/SettingsController.js",

@@ -8,7 +8,7 @@ var settings;
 $(function () {
     settingsController.loadSettings(function (items) {
         settings = items;
-        window.parent.postMessage({ type: "getDialogData" }, "*");
+        //window.parent.postMessage({ type: "getDialogData" }, "*");
         $("input[type='radio']").checkboxradio({
             icon: false
         });
@@ -18,6 +18,7 @@ $(function () {
 
 
 // Listen to the response from main
+/*
 window.addEventListener("message", function (event) {
     if (event.data.type == "getDialogDataResult") {
         OnDataLoad(event.data);
@@ -31,8 +32,10 @@ window.addEventListener("message", function (event) {
     }
 });
 
+*/
 
 // Fill in form
+/*
 function OnDataLoad(data) {
     target = data.content;
     
@@ -54,7 +57,6 @@ function OnDataLoad(data) {
 
     LoadPreviousTrust(target);
 }
-
 function LoadPreviousTrust(target) {
     var items = [];
     if (target.id) items.push({ user: { id: new tce.buffer.Buffer(target.id) } });
@@ -79,8 +81,6 @@ function LoadPreviousTrust(target) {
         $("#oldtrust").show();
     });
 }
-
-
 
 
 function ParseTargetResult(result) {
@@ -111,7 +111,7 @@ function ParseTargetResult(result) {
         }
     }
 }
-
+*/
 function DataBind(target) {
     if (target.id) {
         var pubKey = tce.bitcoin.ECPair.fromPublicKeyBuffer(new tce.buffer.Buffer(target.id));

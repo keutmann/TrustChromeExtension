@@ -142,8 +142,9 @@ var Reddit = (function () {
             return $alink;
         }
 
-        this.CreateLinkAnalyse = function(user, text, title) {
-            var $alink = $("<a title='"+title+"' href='#'>["+text+"]</a>");
+        this.CreateIdenticon = function(user, title) {
+            var data = new Identicon(user.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
+            var $alink = $('<a title="'+title+'" href="#"><img src="data:image/svg+xml;base64,' + data + '"></a>');
             $alink.data("user",user);
             $alink.click(function() {
                 var user = $(this).data("user");
@@ -162,18 +163,10 @@ var Reddit = (function () {
                 opt.top = Math.floor(wTop + (window.innerHeight / 2) - (opt.h / 2));
                 
                 chrome.runtime.sendMessage(opt);
-                //window.parent.postMessage({ command: "openDialog", url: 'trustlist.html' }, "*");
                 return false;
             });
             return $alink;
         }
-
-        // window.addEventListener("message", function (event) {
-        //     if (event.data.type == "getTrustListData") {
-                
-        //     }
-        // }        
-
 
         var self = this;
         for(var authorName in this.targets) {
@@ -184,7 +177,8 @@ var Reddit = (function () {
             var $tagLine = $('p.tagline a.id-'+user.thingId);
 
             var $span = $("<span class='userattrs'></span>");
-
+            
+            $span.append(self.CreateIdenticon(user, "Analyse "+authorName));
 
             $span.append(self.CreateLink(user, "T", "Trust "+authorName, true, 0));
             $span.append(self.CreateLink(user, "D", "Distrust "+authorName, false, 0));
@@ -192,8 +186,7 @@ var Reddit = (function () {
             if(user.trusts) 
             {
                 $span.append(self.CreateLink(user, "U", "Untrust "+authorName, true, 1));
-                $span.append(self.CreateLinkAnalyse(user, "A", "Analyse "+authorName));
-
+                
                 user.claimAnalysis = parser.claimAnalysis(user.trusts);
                 var color = (user.claimAnalysis.trust == 100) ? "#EEFFDD": "lightpink";
                 $tagLine.parent().parent().css("background-color", color);
