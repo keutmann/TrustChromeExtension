@@ -42,6 +42,7 @@
         "js/TrustchainService.js",
         "js/PackageBuilder.js",
         "js/PackageParser.js",
+        "js/TargetService.js",
         "js/reddit.js"
       ],
       "run_at": "document_end"

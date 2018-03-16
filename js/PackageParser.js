@@ -10,16 +10,16 @@ var PackageParser = (function() {
             var trust = package.trusts[trustIndex];
             var target = this.targets[trust.subjectAddress];
             if(!target) {
-                target = {
-                    subjectAddress : trust.subjectAddress,
-                }
-                target.trusts = [];
+                target = []
                 this.targets[trust.subjectAddress] = target;
             } 
 
-            target.trusts.push(trust);
+            //target.attributes[trust.type].push(trust.attributes);
+            target.push(trust);
         }
     }
+
+
 
     PackageParser.prototype.claimAnalysis = function(target) {
         var result = {

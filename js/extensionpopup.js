@@ -35,16 +35,21 @@ function BindSettings(items) {
     $("[name='trustrenderradio']").val([items.trustrender]);
     $("[name='resultrenderradio']").val([items.resultrender]);
 
-    $("#address").text(items.keyPair.getAddress());
-    $("#privateKey").text(items.keyPair.toWIF());
+    var address = items.publicKeyHash.toString('HEX');
+    $("#address").text(address);
+    // $("#privateKey").text(items.keyPair.toWIF());
 
-    var hash = tce.bitcoin.crypto.hash256("Demo");
+    //var hash = tce.bitcoin.crypto.hash256("Demo");
+
+    var data = new Identicon(address, {margin:0.1, size:64, format: 'svg'}).toString()
+    $("#identicon").attr("src", "data:image/svg+xml;base64,"+data);
+    
     //$("#hashValue").text(hash.toString('base64'));
     //var message = tce.bitcoin.message.magicHash(hash);
     //$("#message").text(message.toString('base64'));
     //var pre = new tce.buffer.Buffer('Demo', 'utf8');
     //$("#prehex").text(pre.toString('hex'));
-    var sig = tce.bitcoin.message.sign(items.keyPair, hash);
+    //var sig = tce.bitcoin.message.sign(items.keyPair, hash);
     //var sig = items.keyPair.sign(hash);
-    $("#signature").text(sig.toString('base64'));
+    //$("#signature").text(sig.toString('base64'));
 }

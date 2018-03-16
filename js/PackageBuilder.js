@@ -17,16 +17,28 @@ var PackageBuilder = (function() {
         return package;
     }
 
-    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, scope, activate, expire)
+    PackageBuilder.prototype.SignPackage = function(package) {
+        for(var trustIndex in package.trusts) {
+            var trust = package.trusts[trustIndex];
+            this.CalculateTrustId(trust);
+            this.SignTrust(trust);
+        }
+        return this;
+    }
+
+    PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, note, scope, activate, expire)
     {
         var attributes = { trust: value }
+        if(!isNullOrWhitespace(note))
+            attributes.note = note;
+            
         var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(attributes), activate, expire);
         return trust;
     }
 
-    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, alias, scope, activate, expire)
+    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, attributes, scope, activate, expire)
     {
-        var attributes = { alias: value }
+        //var attributes = { alias: value }
         var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(attributes), activate, expire);
         return trust;
     }
@@ -41,15 +53,13 @@ var PackageBuilder = (function() {
             attributes: (attributes) ? attributes : "",
             cost: 100,
             activate: (activate) ? activate: 0,
-            expire: (expire) ? expire: 0,
-            note: ""
+            expire: (expire) ? expire: 0
         }
         return trust;
     }
 
     PackageBuilder.prototype.SignTrust = function(trust) {
         var id = (typeof trust.id === 'string') ? new tce.buffer.Buffer(trust.id, 'base64') : trust.id;
-        //trust.issuerSignature = tce.bitcoin.message.sign(this.settings.keyPair, id);
         trust.issuerSignature = this.settings.keyPair.signCompact(id);
     }
 

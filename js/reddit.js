@@ -4,9 +4,10 @@
 //var imageUrl = chrome.extension.getURL("img/Question_blue.png");
 
 var Reddit = (function () {
-    function Reddit(settings, packageBuilder, trustchainService) {
+    function Reddit(settings, packageBuilder, targetService, trustchainService) {
         var self = this;
         self.settings = settings;
+        self.targetService = targetService;
         self.targets = [];
         this.packageBuilder = packageBuilder;
         self.trustchainService = trustchainService;
@@ -16,25 +17,28 @@ var Reddit = (function () {
             var $this = $(this);
             var authorName = $this.data("author");
 
-            var user = self.targets[authorName];
-            if(!user) {
-                user = {};
-                //user.$htmlContainers = []; 
-                user.authorName = authorName;
-                user.thingId = $this.data("author-fullname");
-                user.address = authorName.hash160(); // array of bytes (Buffer)
-                user.scope = window.location.hostname;
-                self.targets[authorName] = user;
+            var target = self.targets[authorName];
+            if(!target) {
+                target = {};
+                //target.$htmlContainers = []; 
+                target.alias = authorName;
+                target.thingId = $this.data("author-fullname");
+                target.address = authorName.hash160(); // array of bytes (Buffer)
+                target.scope = window.location.hostname;
+                target.type = "thing";
+                self.targets[authorName] = target;
             }
 
-            //user.$htmlContainers.push($this);
+            //target.$htmlContainers.push($this);
 
-            if(!user.identity) {
+            if(!target.owner) {
                 var $proof = $this.find("a[href*='scope=reddit']:contains('Proof')")
                 if ($proof.length > 0) {
-                    var query = getQueryParams($proof.attr("href"));
-                    if(query.name == user.authorName) 
-                        user.identity = query;
+                    var params = getQueryParams($proof.attr("href"));
+                    if(params.name == target.alias) {
+                        target.owner = params;
+                        target.owner.type = "entity";
+                    }
                 }
             }
         });
@@ -62,7 +66,7 @@ var Reddit = (function () {
 
         function BuildProof(settings, username, content) {
             var hash = tce.bitcoin.crypto.hash256(new tce.buffer.Buffer(username + content.trim(), 'UTF8'));
-            var signatre = settings.keyPair.signCompact(hash); // sign needs a sha256
+            var signature = settings.keyPair.signCompact(hash); // sign needs a sha256
     
             var proof =
                 ' ([Proof](' + settings.infoserver +
@@ -70,7 +74,7 @@ var Reddit = (function () {
                 '?scope=reddit.com' +
                 '&script=btc-pkh' +
                 '&address=' + settings.publicKeyHash.toString('HEX') +
-                '&signature=' + signatre.toString('HEX') +
+                '&signature=' + signature.toString('HEX') +
                 '&hash=' + hash.toString('HEX') +
                 '&name=' + username +
                 ' "' + username + '"))';
@@ -131,28 +135,25 @@ var Reddit = (function () {
     }
 
     Reddit.prototype.RenderLinks = function (parser) {
-        this.CreateLink = function(user, text, title, value, expire) {
+        this.CreateLink = function(target, text, title, value, expire) {
             var $alink = $("<a title='"+title+"' href='#'>["+text+"]</a>");
-            $alink.data("user",user);
+            $alink.data("target",target);
             $alink.click(function() {
-                var user = $(this).data("user");
-                self.BuildAndSubmitBinaryTrust(user, value, expire);
+                self.BuildAndSubmitBinaryTrust($(this).data("target"), value, expire);
                 return false;
             });
             return $alink;
         }
 
-        this.CreateIdenticon = function(user, title) {
-            var data = new Identicon(user.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
+        this.CreateIdenticon = function(target, title) {
+            var data = new Identicon(target.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
             var $alink = $('<a title="'+title+'" href="#"><img src="data:image/svg+xml;base64,' + data + '"></a>');
-            $alink.data("user",user);
+            $alink.data("target",target);
             $alink.click(function() {
-                var user = $(this).data("user");
-    
                 var opt = {
                     command:'openDialog',
                     url: 'trustlist.html',
-                    data: user
+                    data: $(this).data("target")
                 };
                 opt.w = 800;
                 opt.h = 800;
@@ -170,85 +171,37 @@ var Reddit = (function () {
 
         var self = this;
         for(var authorName in this.targets) {
-            var user = this.targets[authorName];
-            var addressBase64 = user.address.toJSON();
-            user.trusts = parser.targets[addressBase64];
+            var target = this.targets[authorName];
+            var addressBase64 = target.address.toJSON();
+            target.trusts = parser.targets[addressBase64];
 
-            var $tagLine = $('p.tagline a.id-'+user.thingId);
+            var $tagLine = $('p.tagline a.id-'+target.thingId);
 
             var $span = $("<span class='userattrs'></span>");
             
-            $span.append(self.CreateIdenticon(user, "Analyse "+authorName));
+            $span.append(self.CreateIdenticon(target, "Analyse "+authorName));
 
-            $span.append(self.CreateLink(user, "T", "Trust "+authorName, true, 0));
-            $span.append(self.CreateLink(user, "D", "Distrust "+authorName, false, 0));
+            $span.append(self.CreateLink(target, "T", "Trust "+authorName, true, 0));
+            $span.append(self.CreateLink(target, "D", "Distrust "+authorName, false, 0));
 
-            if(user.trusts) 
+            if(target.trusts) 
             {
-                $span.append(self.CreateLink(user, "U", "Untrust "+authorName, true, 1));
+                $span.append(self.CreateLink(target, "U", "Untrust "+authorName, true, 1));
                 
-                user.claimAnalysis = parser.claimAnalysis(user.trusts);
-                var color = (user.claimAnalysis.trust == 100) ? "#EEFFDD": "lightpink";
+                target.claimAnalysis = parser.claimAnalysis(target);
+                var color = (target.claimAnalysis.trust == 100) ? "#EEFFDD": "lightpink";
                 $tagLine.parent().parent().css("background-color", color);
             }
 
-            $('p.tagline a.id-'+user.thingId).after($span);
+            $('p.tagline a.id-'+target.thingId).after($span);
             
         }
     };
 
-    Reddit.prototype.CreateBinaryTrust = function(user, value, expire) {
-        // Build trust
-        var trust = this.packageBuilder.CreateBinaryTrust(this.settings.publicKeyHash, 
-            "btc-pkh", 
-            user.address, 
-            value, 
-            user.scope,
-            0,
-            expire);
-
-        var package = this.packageBuilder.CreatePackage(trust);
-
-        if(user.identity) {
-            var subjectPublicKey = new tce.buffer.Buffer((user.identity.pk || user.identity.id), 'HEX');
-
-            var trust2 = this.packageBuilder.CreateBinaryTrust(this.settings.publicKeyHash, 
-                "btc-pkh", 
-                tce.bitcoin.crypto.hash160(subjectPublicKey), 
-                value, 
-                user.scope,
-                0,
-                expire);
-            package.trusts.push(trust2);
-        }
-
-        
-
-        return package;
-    }
-
-    Reddit.prototype.BuildBinaryTrust = function(user, value, expire) {
-        var self = this;
-        var package = this.CreateBinaryTrust(user,value, expire);
-
-        for(var trustIndex in package.trusts) {
-            var trust = package.trusts[trustIndex];
-            self.packageBuilder.CalculateTrustId(trust);
-            self.packageBuilder.SignTrust(trust);
-        }
-        return package;
-    }
-
-    Reddit.prototype.BuildAndSubmitBinaryTrust = function(user, value, expire) {
-        var self = this;
-        var package = self.BuildBinaryTrust(user, value, expire);
-        self.SubmitBinaryTrust(package).done(function(trustResult) {
-            console.log("Posting package is a "+trustResult.status);
-        });
-    }
-
-    Reddit.prototype.SubmitBinaryTrust = function(package) {
-        return this.trustchainService.PostTrust(package).done(function(trustResult){
+    Reddit.prototype.BuildAndSubmitBinaryTrust = function(target, value, expire) {
+        var package = this.targetService.BuildBinaryTrust(target, value, null, expire);
+        this.packageBuilder.SignPackage(package);
+        this.trustchainService.PostTrust(package).done(function(trustResult){
             console.log("Posting package is a "+trustResult.status);
         });
     }
@@ -261,7 +214,7 @@ var Reddit = (function () {
 
         self.trustchainService.Query(this.targets).done(function (result) {
             if (!result || result.status != "Success") {
-                alert(result.message);
+                //alert(result.message);
                 deferred.fail();
                 return;
             }
@@ -286,8 +239,10 @@ var Reddit = (function () {
 var settingsController = new SettingsController();
 settingsController.loadSettings(function (settings) {
     var packageBuilder = new PackageBuilder(settings);
+    var targetService = new TargetService(settings, packageBuilder);
     var trustchainService = new TrustchainService(settings);
-    var reddit = new Reddit(settings,  packageBuilder, trustchainService);
+   
+    var reddit = new Reddit(settings,  packageBuilder, targetService, trustchainService);
 
     reddit.EnableProof();
     reddit.QueryChain().done(function(parser) {

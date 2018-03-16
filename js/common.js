@@ -80,6 +80,9 @@ function GetTargetAddress(target) {
 }
 
 
+function isNullOrWhitespace(input) {
+    return !input || !input.trim();
+}
 
 // Create a hash160 of a string
 String.prototype.hash160 = function() {

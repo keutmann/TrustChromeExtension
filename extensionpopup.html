@@ -34,7 +34,7 @@
         <form class="form-signin">
             <div id="my-tab-content" class="tab-content">
                 <div id="usercontainer" class="tab-pane active">
-                    <h2 class="form-signin-heading">User identity</h2>
+                    <h3 class="form-signin-heading">User identity</h3>
                     <p>The user account ID are generated from the Password and the additional seed (optional). There is no need to create an account up front.</p>
                     <div><label for="inputPassword">Password</label></div>
                     <div class="input-group">
@@ -47,25 +47,29 @@
                         <input type="text" id="inputSeed" class="form-control" name="msg" placeholder="E-mail / Phone / Pin or any text">
                     </div>
                     <div class="input-group">
+                        <img id="identicon" style="float: left; padding: 5px;">
+                        <div style="float: left; padding: 5px;">
+                            <label for="address">Address: </label><br><span id="address"></span>
+                        </div>
+                    </div>
+                    <!-- <div class="input-group">
                         <button type="button" data-toggle="collapse" class="btn btn-link" data-target="#keyContainer">Crypto data</button>
                     </div>
                     <div class="input-group">
                         <div id="keyContainer" class="collapse col-xs-12">
-                            <div><label for="address">Address</label></div>
-                            <div id="address"></div>
                             <div><label for="keyid">ID</label></div>
                             <div id="keyid"></div>
                             <div><label for="privateKey">Private key</label></div>
-                            <div id="privateKey"></div>
-                            <div><label for="signature">Signature</label></div>
-                            <div id="signature" style="overflow-wrap: break-word;"></div>
+                            <div id="privateKey"></div> -->
+                            <!-- <div><label for="signature">Signature</label></div> -->
+                            <!-- <div id="signature" style="overflow-wrap: break-word;"></div> -->
                             <!--<div>Public key: <span id="publicKey"></span></div>-->
                             <!--<p>Hash Value: <span id="hashValue"></span></p>
                         <p>Message: <span id="message"></span></p>
                         <p>Pre HEX: <span id="prehex"></span></p>-->
 
-                        </div>
-                    </div>
+                        <!-- </div>
+                    </div> -->
                     <div class="input-group">
                         <div class="checkbox">
                             <label>
@@ -131,6 +135,7 @@
     <script src="lib/jquery/jquery-2.0.3.min.js"></script>
     <script src="lib/bootstrap/dist/js/bootstrap.min.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
+    <script src="lib/identiconjs/identicon.js"></script>
     <script src="js/common.js"></script>
     <script src="js/SettingsController.js"></script>
     <script src="js/extensionpopup.js"></script>

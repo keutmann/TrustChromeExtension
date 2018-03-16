@@ -19,8 +19,12 @@ var SettingsController = (function() {
     
         this.saveSettings = function(settings) {
             if (settings.rememberme) {
+                settings.keyPair = undefined;
+                settings.publicKeyHash = undefined;
                 chrome.storage.local.set({ usersettings: settings }, function () {
+                    this.buildKey(settings);
                     console.log('Settings saved');
+
                 });
             }
         }
