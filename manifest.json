@@ -41,7 +41,7 @@
         "js/SettingsController.js",
         "js/TrustchainService.js",
         "js/PackageBuilder.js",
-        "js/PackageParser.js",
+        "js/TrustHandler.js",
         "js/TargetService.js",
         "js/reddit.js"
       ],

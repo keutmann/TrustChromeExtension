@@ -39,7 +39,7 @@
     <script src="js/SettingsController.js"></script>
     <script src="js/PackageBuilder.js"></script>
     <script src="js/TrustchainService.js"></script>
-    <script src="js/PackageParser.js"></script>
+    <script src="js/TrustHandler.js"></script>
     <script src="js/TargetService.js"></script>
     <script src="js/trustlist.js"></script>
 </head>
@@ -80,7 +80,7 @@
                         </td>
                         <td>
                             <div>Address: {{ trust.issuerAddressHex }} - 
-                                <a href="#" ng-click="trustClick(trust);" ng-title="Trust {{ trust.alias }}">[T]</a>
+                                <a href="#" ng-click="trustClick(trust);" ng-title="Trust {{ trust.alias }}" ng-show="trust.showTrustButton">[T]</a>
                                 <a href="#" ng-click="distrustClick(trust);" ng-title="Trust {{ trust.alias }}">[D]</a>
                                 <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
                             </div>
@@ -129,7 +129,7 @@
         </div>
         <div class="row">
             <div class="col-xs-12" ng-show="jsonVisible">
-                <pre id="json"></pre>
+                <pre>{{ json }}</pre>
             </div>
         </div>
     </div>

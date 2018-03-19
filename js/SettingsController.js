@@ -44,7 +44,7 @@ var SettingsController = (function() {
             
             settings.keyPair = new tce.bitcoin.ECPair(d)
             settings.publicKeyHash = tce.bitcoin.crypto.hash160(settings.keyPair.getPublicKeyBuffer());
-    
+            settings.publicKeyHashBase64 = settings.publicKeyHash.toString('base64');
             return settings.keyPair;
         }
     }

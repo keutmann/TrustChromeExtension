@@ -9,8 +9,9 @@ var Reddit = (function () {
         self.settings = settings;
         self.targetService = targetService;
         self.targets = [];
-        this.packageBuilder = packageBuilder;
+        self.packageBuilder = packageBuilder;
         self.trustchainService = trustchainService;
+        self.queryResult = {};
 
         $("div.thing[data-author]").each(function () {
 
@@ -134,26 +135,33 @@ var Reddit = (function () {
         observer.observe(targetNode, observerConfig);
     }
 
-    Reddit.prototype.RenderLinks = function (parser) {
-        this.CreateLink = function(target, text, title, value, expire) {
+    Reddit.prototype.RenderLinks = function () {
+        var self = this;
+
+        this.CreateText = function(text, title) {
+            var $text = $("<b title='"+title+"'>["+text+"]</b>");
+            return $text;
+        }
+
+        this.CreateLink = function(subject, text, title, value, expire) {
             var $alink = $("<a title='"+title+"' href='#'>["+text+"]</a>");
-            $alink.data("target",target);
+            $alink.data("subject",subject);
             $alink.click(function() {
-                self.BuildAndSubmitBinaryTrust($(this).data("target"), value, expire);
+                self.BuildAndSubmitBinaryTrust($(this).data("subject"), value, expire);
                 return false;
             });
             return $alink;
         }
 
-        this.CreateIdenticon = function(target, title) {
-            var data = new Identicon(target.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
+        this.CreateIdenticon = function(subject, title) {
+            var data = new Identicon(subject.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
             var $alink = $('<a title="'+title+'" href="#"><img src="data:image/svg+xml;base64,' + data + '"></a>');
-            $alink.data("target",target);
+            $alink.data("subject", subject);
             $alink.click(function() {
                 var opt = {
                     command:'openDialog',
                     url: 'trustlist.html',
-                    data: $(this).data("target")
+                    data: $(this).data("subject")
                 };
                 opt.w = 800;
                 opt.h = 800;
@@ -169,67 +177,52 @@ var Reddit = (function () {
             return $alink;
         }
 
-        var self = this;
         for(var authorName in this.targets) {
-            var target = this.targets[authorName];
-            var addressBase64 = target.address.toJSON();
-            target.trusts = parser.targets[addressBase64];
+            var subject = this.targets[authorName];
 
-            var $tagLine = $('p.tagline a.id-'+target.thingId);
+            
+            //subject.
+            //var addressBase64 = subject.address.toJSON();
+            //subject.trusts = parser.subjects[addressBase64];
+
+            subject.queryResult = self.queryResult;
+            subject.binaryTrust = self.trustHandler.CalculateBinaryTrust(subject.address.toString('base64'));
+
+            var $tagLine = $('p.tagline a.id-'+subject.thingId);
 
             var $span = $("<span class='userattrs'></span>");
             
-            $span.append(self.CreateIdenticon(target, "Analyse "+authorName));
+            $span.append(self.CreateIdenticon(subject, "Analyse "+authorName));
 
-            $span.append(self.CreateLink(target, "T", "Trust "+authorName, true, 0));
-            $span.append(self.CreateLink(target, "D", "Distrust "+authorName, false, 0));
+            if(subject.binaryTrust.direct && subject.binaryTrust.directValue) 
+                $span.append(self.CreateText("T", "Trust"));
+            else
+                $span.append(self.CreateLink(subject, "T", "Trust "+authorName, true, 0));
 
-            if(target.trusts) 
-            {
-                $span.append(self.CreateLink(target, "U", "Untrust "+authorName, true, 1));
+            if(subject.binaryTrust.direct && !subject.binaryTrust.directValue) 
+                $span.append(self.CreateText("D", "Distrust"));
+            else
+                $span.append(self.CreateLink(subject, "D", "Distrust "+authorName, false, 0));
+
+            if(subject.binaryTrust.direct) 
+                $span.append(self.CreateLink(subject, "U", "Untrust "+authorName, true, 1));
                 
-                target.claimAnalysis = parser.claimAnalysis(target);
-                var color = (target.claimAnalysis.trust == 100) ? "#EEFFDD": "lightpink";
+            if(subject.binaryTrust.isTrusted != 0) {
+                var color = (subject.binaryTrust.isTrusted > 0) ? "#EEFFDD": "lightpink";
                 $tagLine.parent().parent().css("background-color", color);
             }
 
-            $('p.tagline a.id-'+target.thingId).after($span);
+            $('p.tagline a.id-'+subject.thingId).after($span);
             
         }
     };
 
-    Reddit.prototype.BuildAndSubmitBinaryTrust = function(target, value, expire) {
-        var package = this.targetService.BuildBinaryTrust(target, value, null, expire);
+    Reddit.prototype.BuildAndSubmitBinaryTrust = function(subject, value, expire) {
+        var package = this.targetService.BuildBinaryTrust(subject, value, null, expire);
         this.packageBuilder.SignPackage(package);
         this.trustchainService.PostTrust(package).done(function(trustResult){
             console.log("Posting package is a "+trustResult.status);
         });
-    }
-
-
-    Reddit.prototype.QueryChain = function() {
-        var deferred = $.Deferred();
-
-        var self = this;
-
-        self.trustchainService.Query(this.targets).done(function (result) {
-            if (!result || result.status != "Success") {
-                //alert(result.message);
-                deferred.fail();
-                return;
-            }
-
-            var package = result.data.results;
-            if(!package) 
-                package = { trusts: [] };
-
-            var parser = new PackageParser(package);
-            self.queryResult = parser;
-
-            deferred.resolve(parser);
-        });
-
-        return deferred.promise();
     }
 
     return Reddit;
@@ -245,7 +238,15 @@ settingsController.loadSettings(function (settings) {
     var reddit = new Reddit(settings,  packageBuilder, targetService, trustchainService);
 
     reddit.EnableProof();
-    reddit.QueryChain().done(function(parser) {
-        reddit.RenderLinks(parser);
+    reddit.trustchainService.Query(reddit.targets).done(function(result) {
+        if (result || result.status == "Success") 
+            reddit.queryResult = result.data.results;
+        else
+            console.log(result.message);
+        
+        reddit.trustHandler = new TrustHandler(reddit.queryResult, settings);
+
+        reddit.RenderLinks();
+        
     });
 });

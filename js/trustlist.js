@@ -7,23 +7,28 @@
 var app = angular.module("myApp", []);
 app.controller("trustlistCtrl", function($scope) {
 
-    $scope.subject = null;
-    $scope.binarytrusts = [];
-    $scope.trusted = [];
-    $scope.distrusted = [];
-    $scope.jsonVisible = false;
+    $scope.init = function() {    
+        $scope.subject = null;
+        $scope.binarytrusts = [];
+        $scope.trusted = [];
+        $scope.distrusted = [];
+        $scope.jsonVisible = false;
+    }
 
     $scope.settingsController = new SettingsController();
     $scope.settingsController.loadSettings(function (settings) {
         $scope.settings = settings;
+        $scope.settings.publicKeyHashBase64 = $scope.settings.publicKeyHash.toString('base64');
         $scope.packageBuilder = new PackageBuilder(settings);
         $scope.targetService = new TargetService(settings, $scope.packageBuilder);
         $scope.trustchainService = new TrustchainService(settings);
     });
 
     $scope.load = function(subject) {
+        $scope.init();
         $scope.subject = subject;
-
+        //$scope.subject parser.parse();
+        $scope.trustHandler = new TrustHandler($scope.subject.queryResult, $scope.settings);
         $scope.subject.addressHex = (new tce.buffer.Buffer($scope.subject.address, 'base64')).toString("HEX");
         $scope.subject.identicoinData = $scope.getIdenticoinData($scope.subject.addressHex);
         $scope.subject.addressClass = (this.subject.type != "thing") ? "text-primary": "";
@@ -32,32 +37,48 @@ app.controller("trustlistCtrl", function($scope) {
         if(!$scope.subject.owner)
             $scope.subject.owner = {}
 
+        // The subject has an owner
         if($scope.subject.owner.address) {
             $scope.subject.owner.addressHex = $scope.subject.owner.address.toString('HEX');
             $scope.subject.owner.identiconData16 = $scope.getIdenticoinData($scope.subject.owner.addressHex, 16);
         }
 
+        $scope.subject.trusts = $scope.trustHandler.subjects[$scope.subject.subjectAddress];
+        $scope.subject.binaryTrust = $scope.trustHandler.CalculateBinaryTrust($scope.subject.subjectAddress);
+
         for(var index in $scope.subject.trusts) {
             var trust = $scope.subject.trusts[index];
-            trust.parseAttributes = JSON.parse(trust.attributes);
 
+            // If trust is a BinaryTrust, decorate the trust object with data
             if(trust.type == $scope.packageBuilder.BINARYTRUST_TC1) {
                 $scope.binarytrusts[trust.subjectAddress] = trust;
-                trust.identiconData = $scope.getIdenticoinData(trust.issuerAddress);
                 trust.issuerAddressHex = (new tce.buffer.Buffer(trust.issuerAddress, 'base64')).toString("HEX");
+                trust.identiconData = $scope.getIdenticoinData(trust.issuerAddressHex);
 
-                if(trust.parseAttributes.trust)
+                // Add trust to the right list
+                if(trust.attributesObj.trust)
                     $scope.trusted.push(trust);
                 else
                     $scope.distrusted.push(trust);
+                
+                trust.showTrustButton = !($scope.subject.binaryTrust.direct && $scope.subject.binaryTrust.directValue);
+                trust.showDistrustButton = !($scope.subject.binaryTrust.direct && !$scope.subject.binaryTrust.directValue);
+                trust.showUntrustButton = $scope.subject.binaryTrust.direct;
             }
 
+            // Ensure alias on trust, if exist
             if(trust.type == $scope.packageBuilder.IDENTITY_TC1) {
-                $scope.binarytrusts[trust.subjectAddress].alias = trust.parseAttributes.alias;
+
+                $scope.binarytrusts[trust.subjectAddress].alias = trust.parseAttributes.alias + (isOwnTrust) ? " (You)": "";
             }
         }
+        $scope.json = JSON.stringify(subject, undefined, 2);
 
         $scope.$apply();
+    }
+
+    $scope.findMyTrust = function(trust) {
+        return trust.issuerAddress == $scope.settings.publicKeyHashBase64 && trust.type == $scope.packageBuilder.BINARYTRUST_TC1;
     }
 
     $scope.showHideJson = function() {
@@ -89,47 +110,9 @@ app.controller("trustlistCtrl", function($scope) {
     chrome.runtime.onMessage.addListener(
         function(request, sender, sendResponse) {
           if (request.command == "showTarget") {
-                document.getElementById("json").innerHTML = JSON.stringify(request.data, undefined, 2);
                 $scope.load(request.data);
                 sendResponse({result: "ok"});
           }
         });
     
 });
-
-// Onload
-
-
-// Listen to the response from main
-// window.addEventListener("message", function (event) {
-//     if (event.data.type == "showTarget") {
-//         DataBind(event.data.user);
-//     }
-//     if (event.data.type == "Issue") {
-//         var radioTrustResult = $('input[name="radio-trust"]:checked').val();
-//         if (radioTrustResult != "neutral")
-//             target.trust = (radioTrustResult == "trust");
-
-//         window.parent.postMessage({ type: "modalTrustIssue", target: target }, "*");
-//     }
-// });
-
-
-//window.parent.postMessage({ type: "updateUsertrust", user: user }, "*");
-
-//function DataBind(user) {
-    // if (target.id) {
-    //     var pubKey = tce.bitcoin.ECPair.fromPublicKeyBuffer(new tce.buffer.Buffer(target.id));
-    //     $("#subjectId").html(pubKey.getAddress()); // Only render the Text part
-    // } else {
-    //     $("#subjectId").html("No Trust ID was provided.");
-    // }
-    // $("#contentName").html(target.content); // Only render the Text part
-
-    // var buf = tce.buffer.Buffer.concat([new tce.buffer.Buffer("41", 'HEX'), new tce.buffer.Buffer(target.contentid)]);
-    // var ctidbase85check = tce.base58check.encode(buf);
-    // $("#contentid").html(ctidbase85check); // Only render the Text part
-//}
-
-
-
