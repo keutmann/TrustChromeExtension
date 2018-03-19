@@ -6,6 +6,8 @@
 
 var app = angular.module("myApp", []);
 app.controller("trustlistCtrl", function($scope) {
+    $scope.showContainer = false; // Less flickring
+    $scope.history = [];
 
     $scope.init = function() {    
         $scope.subject = null;
@@ -43,8 +45,8 @@ app.controller("trustlistCtrl", function($scope) {
             $scope.subject.owner.identiconData16 = $scope.getIdenticoinData($scope.subject.owner.addressHex, 16);
         }
 
-        $scope.subject.trusts = $scope.trustHandler.subjects[$scope.subject.subjectAddress];
-        $scope.subject.binaryTrust = $scope.trustHandler.CalculateBinaryTrust($scope.subject.subjectAddress);
+        $scope.subject.trusts = $scope.trustHandler.subjects[$scope.subject.address];
+        $scope.subject.binaryTrust = $scope.trustHandler.CalculateBinaryTrust($scope.subject.address);
 
         for(var index in $scope.subject.trusts) {
             var trust = $scope.subject.trusts[index];
@@ -64,21 +66,36 @@ app.controller("trustlistCtrl", function($scope) {
                 trust.showTrustButton = !($scope.subject.binaryTrust.direct && $scope.subject.binaryTrust.directValue);
                 trust.showDistrustButton = !($scope.subject.binaryTrust.direct && !$scope.subject.binaryTrust.directValue);
                 trust.showUntrustButton = $scope.subject.binaryTrust.direct;
-            }
 
+                if($scope.subject.binaryTrust.direct) 
+                    trust.alias = "(You)";
+            }
+        }
+
+        for(var index in $scope.subject.trusts) {
+            var trust = $scope.subject.trusts[index];
             // Ensure alias on trust, if exist
             if(trust.type == $scope.packageBuilder.IDENTITY_TC1) {
 
-                $scope.binarytrusts[trust.subjectAddress].alias = trust.parseAttributes.alias + (isOwnTrust) ? " (You)": "";
+                $scope.binarytrusts[trust.subjectAddress].alias = trust.parseAttributes.alias + ($scope.subject.binaryTrust.direct) ? " (You)": "";
             }
         }
+        
         $scope.json = JSON.stringify(subject, undefined, 2);
-
+        $scope.showContainer = true;
         $scope.$apply();
     }
 
-    $scope.findMyTrust = function(trust) {
-        return trust.issuerAddress == $scope.settings.publicKeyHashBase64 && trust.type == $scope.packageBuilder.BINARYTRUST_TC1;
+    $scope.analyseClick = function(trust) {
+        $scope.history.push($scope.subject);
+        trust.address = trust.issuerAddress;
+        trust.queryResult = $scope.subject.queryResult;
+        $scope.load(trust); // Trust becomes the subject
+    }
+
+
+    $scope.historyBack = function() {
+        $scope.load($scope.history.pop()); // Trust becomes the subject
     }
 
     $scope.showHideJson = function() {

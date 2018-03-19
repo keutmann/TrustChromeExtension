@@ -3,9 +3,9 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="description" content="">
+    <meta name="description" content="Analyse trust">
 
-    <title>Trust list</title>
+    <title>Analyse Trust</title>
 
     <link href="lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <style>
@@ -32,7 +32,6 @@
         }
     </style>
     <script src="lib/angularJS/angular.min.js"></script>
-    <!-- <script src="lib/bootstrap/dist/js/bootstrap.min.js"></script> -->
     <script src="lib/identiconjs/identicon.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
     <script src="js/common.js"></script>
@@ -45,8 +44,13 @@
 </head>
 
 <body ng-app="myApp" ng-controller="trustlistCtrl">
-    <div class="container">
-        <h1>Analyse</h1>
+    <div class="container" ng-show="showContainer">
+        <div class="row">
+            <div class="col-xs-12">
+               <button type="button" ng-click="historyBack()" class="btn btn-default btn-xs" ng-style="{'visibility': (history.length > 0)?'visible':'hidden'}" >
+                   <span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span> Back</button>
+            </div>
+        </div>
         <div class="row">
             <div class="col-xs-12">
                 <h3>Subject</h3>
@@ -72,11 +76,11 @@
         </div>
         <div class="row" ng-show="trusted.length > 0">
             <div class="col-xs-12">
-                <h3>Trusted by:</h3>
+                <h4>Trusted by:</h4>
                 <table class="trustList" >
                     <tr ng-repeat="trust in trusted">
                         <td>
-                            <a href="#"><img ng-src="data:image/svg+xml;base64,{{ trust.identiconData }}"></a>
+                            <a href="#" ng-click="analyseClick(trust)"><img ng-src="data:image/svg+xml;base64,{{ trust.identiconData }}"></a>
                         </td>
                         <td>
                             <div>Address: {{ trust.issuerAddressHex }} - 
@@ -94,37 +98,31 @@
             </div>
         </div>
         <div class="row" ng-show="distrusted.length > 0">
-                <div class="col-xs-12">
-                    <h3>Distrusted by:</h3>
-                    <table class="trustList" >
-                        <tr ng-repeat="trust in distrusted">
-                            <td>
-                                <a href="#"><img ng-src="data:image/svg+xml;base64,{{ trust.identiconData }}"></a>
-                            </td>
-                            <td>
-                                <div>Address: {{ trust.issuerAddressHex }} - 
-                                    <a href="#" ng-click="trustClick(trust);" ng-title="Trust {{ trust.alias }}">[T]</a>
-                                    <a href="#" ng-click="distrustClick(trust);" ng-title="Trust {{ trust.alias }}">[D]</a>
-                                    <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
-                                </div>
-                                <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
-                            </td>
-                            <td>
-                                <span class="trusted">{{ trust.parseAttributes.trust }}</span>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-            <div class="row" ng-hide="true">
             <div class="col-xs-12">
-                <h3>Distrusted by:</h3>
-                {{ "Nothing here!" }}
+                <h4>Distrusted by:</h4>
+                <table class="trustList" >
+                    <tr ng-repeat="trust in distrusted">
+                        <td>
+                            <a href="#" ng-click="analyseClick(trust)"><img ng-src="data:image/svg+xml;base64,{{ trust.identiconData }}"></a>
+                        </td>
+                        <td>
+                            <div>Address: {{ trust.issuerAddressHex }} - 
+                                <a href="#" ng-click="trustClick(trust);" ng-title="Trust {{ trust.alias }}">[T]</a>
+                                <a href="#" ng-click="distrustClick(trust);" ng-title="Trust {{ trust.alias }}">[D]</a>
+                                <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
+                            </div>
+                            <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
+                        </td>
+                        <td>
+                            <span class="trusted">{{ trust.parseAttributes.trust }}</span>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
         <div class="row">
             <div class="col-xs-12">
-                <button type="button" class="btn btn-link" ng-click="showHideJson()">JSON data</button>
+                <button type="button" class="btn btn-link btn-xs" ng-click="showHideJson()">JSON data</button>
             </div>
         </div>
         <div class="row">
