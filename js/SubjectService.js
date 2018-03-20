@@ -1,13 +1,13 @@
 ///<reference path="../typings/globals/jquery/index.d.ts" />
 
-var TargetService = (function() {
-    function TargetService(settings, packageBuilder) {
+var SubjectService = (function() {
+    function SubjectService(settings, packageBuilder) {
         this.SCRIPT = "btc-pkh";
         this.settings = settings;
         this.packageBuilder = packageBuilder;
     }
 
-    TargetService.prototype.BuildBinaryTrust = function(target, value, note, expire) {
+    SubjectService.prototype.BuildBinaryTrust = function(target, value, note, expire) {
         var trust = this.packageBuilder.CreateBinaryTrust(
             this.settings.publicKeyHash, 
             this.SCRIPT, 
@@ -51,7 +51,7 @@ var TargetService = (function() {
         return package;
     }
 
-    return TargetService;
+    return SubjectService;
 }())
 
 

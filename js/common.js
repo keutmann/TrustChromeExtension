@@ -73,6 +73,7 @@ tce.buffer.Buffer.prototype.toJSON = function toJSON() {
     return this.toString('base64');
 }
 
+
 function GetTargetAddress(target) {
     var address = (target.id) ? GetAddress(target.id, target.sig, target.content) :
                 GetIDFromContent(target.content);

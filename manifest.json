@@ -37,12 +37,13 @@
         "lib/bootstrap/dist/js/bootstrap.min.js",
         "lib/identiconjs/identicon.js",
         "lib/bitcoinjs/bitcoin.js",
+        "lib/notify/notify.min.js",
         "js/common.js",
         "js/SettingsController.js",
         "js/TrustchainService.js",
         "js/PackageBuilder.js",
         "js/TrustHandler.js",
-        "js/TargetService.js",
+        "js/SubjectService.js",
         "js/reddit.js"
       ],
       "run_at": "document_end"

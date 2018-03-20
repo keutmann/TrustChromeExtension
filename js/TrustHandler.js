@@ -1,3 +1,5 @@
+///<reference path="../typings/globals/jquery/index.d.ts" />
+
 var TrustHandler = (function() {
     function TrustHandler(package, settings) {
         if(!package) 

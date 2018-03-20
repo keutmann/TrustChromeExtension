@@ -22,14 +22,13 @@ app.controller("trustlistCtrl", function($scope) {
         $scope.settings = settings;
         $scope.settings.publicKeyHashBase64 = $scope.settings.publicKeyHash.toString('base64');
         $scope.packageBuilder = new PackageBuilder(settings);
-        $scope.targetService = new TargetService(settings, $scope.packageBuilder);
+        $scope.subjectService = new SubjectService(settings, $scope.packageBuilder);
         $scope.trustchainService = new TrustchainService(settings);
     });
 
     $scope.load = function(subject) {
         $scope.init();
         $scope.subject = subject;
-        //$scope.subject parser.parse();
         $scope.trustHandler = new TrustHandler($scope.subject.queryResult, $scope.settings);
         $scope.subject.addressHex = (new tce.buffer.Buffer($scope.subject.address, 'base64')).toString("HEX");
         $scope.subject.identicoinData = $scope.getIdenticoinData($scope.subject.addressHex);
@@ -50,6 +49,8 @@ app.controller("trustlistCtrl", function($scope) {
 
         for(var index in $scope.subject.trusts) {
             var trust = $scope.subject.trusts[index];
+
+            trust.address = trust.issuerAddress; 
 
             // If trust is a BinaryTrust, decorate the trust object with data
             if(trust.type == $scope.packageBuilder.BINARYTRUST_TC1) {
@@ -88,7 +89,6 @@ app.controller("trustlistCtrl", function($scope) {
 
     $scope.analyseClick = function(trust) {
         $scope.history.push($scope.subject);
-        trust.address = trust.issuerAddress;
         trust.queryResult = $scope.subject.queryResult;
         $scope.load(trust); // Trust becomes the subject
     }
@@ -108,19 +108,51 @@ app.controller("trustlistCtrl", function($scope) {
         return new Identicon(address, {margin:0.1, size:size, format: 'svg'}).toString();
     };
     
-    $scope.trustClick = function(target) {
-
+    $scope.trustClick = function(trust) {
+        $scope.BuildAndSubmitBinaryTrust(trust, true, 0);
         return false;
     };
 
-    $scope.distrustClick = function(target) {
-        
+    $scope.distrustClick = function(trust) {
+        $scope.BuildAndSubmitBinaryTrust(trust, false, 0);
         return false;
     }
 
-    $scope.untrustClick= function(target) {
-        
+    $scope.untrustClick= function(trust) {
+        $scope.BuildAndSubmitBinaryTrust(trust, trust.attributesObj.trust, 1);
         return false;
+    }
+
+    $scope.buildAndSubmitBinaryTrust = function(subject, value, expire) {
+        var package = $scope.subjectService.BuildBinaryTrust(subject, value, null, expire);
+        $scope.packageBuilder.SignPackage(package);
+        $.notify("Updating trust", 'success');
+        $scope.trustchainService.PostTrust(package).done(function(trustResult){
+            //$.notify("Updating view",trustResult.status.toLowerCase());
+            console.log("Posting package is a "+trustResult.status.toLowerCase());
+
+            // $scope.QueryAndRender().then(function() {
+            //     //$.notify("Done",'success');
+            // }).fail(function(trustResult){ 
+            //     $.notify("Query failed: " +trustResult.message,"fail");
+            // });
+
+        }).fail(function(trustResult){ 
+            $.notify("Adding trust failed: " +trustResult.message,"fail");
+        });
+    }
+
+    $scope.QueryAndRender = function(subject) {
+        return $scope.trustchainService.Query(subject).then(function(result) {
+            if (result || result.status == "Success") 
+            subject.queryResult = result.data.results;
+            else
+                console.log(result.message);
+            
+            subject.trustHandler = new TrustHandler(subject.queryResult, $scope.settings);
+
+            $scope.load(subject);
+        });
     }
 
 

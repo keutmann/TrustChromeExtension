@@ -4,10 +4,10 @@
 //var imageUrl = chrome.extension.getURL("img/Question_blue.png");
 
 var Reddit = (function () {
-    function Reddit(settings, packageBuilder, targetService, trustchainService) {
+    function Reddit(settings, packageBuilder, subjectService, trustchainService) {
         var self = this;
         self.settings = settings;
-        self.targetService = targetService;
+        self.subjectService = subjectService;
         self.targets = [];
         self.packageBuilder = packageBuilder;
         self.trustchainService = trustchainService;
@@ -176,21 +176,16 @@ var Reddit = (function () {
             });
             return $alink;
         }
-
+        
         for(var authorName in this.targets) {
             var subject = this.targets[authorName];
-
-            
-            //subject.
-            //var addressBase64 = subject.address.toJSON();
-            //subject.trusts = parser.subjects[addressBase64];
 
             subject.queryResult = self.queryResult;
             subject.binaryTrust = self.trustHandler.CalculateBinaryTrust(subject.address.toString('base64'));
 
             var $tagLine = $('p.tagline a.id-'+subject.thingId);
-
-            var $span = $("<span class='userattrs'></span>");
+            
+            $span = $("<span class='userattrs' id='tcButtons'></span>");
             
             $span.append(self.CreateIdenticon(subject, "Analyse "+authorName));
 
@@ -206,22 +201,53 @@ var Reddit = (function () {
 
             if(subject.binaryTrust.direct) 
                 $span.append(self.CreateLink(subject, "U", "Untrust "+authorName, true, 1));
-                
-            if(subject.binaryTrust.isTrusted != 0) {
-                var color = (subject.binaryTrust.isTrusted > 0) ? "#EEFFDD": "lightpink";
-                $tagLine.parent().parent().css("background-color", color);
-            }
 
-            $('p.tagline a.id-'+subject.thingId).after($span);
+            var $oldSpan = $tagLine.parent().find('#tcButtons');
+            if($oldSpan.length > 0)
+                $oldSpan.replaceWith($span);
+            else
+                $tagLine.after($span);
             
+            var color = "";
+            if(subject.binaryTrust.isTrusted != 0) 
+                color = (subject.binaryTrust.isTrusted > 0) ? "#EEFFDD": "lightpink";
+                
+            $tagLine.parent().parent().css("background-color", color);
+
         }
     };
 
     Reddit.prototype.BuildAndSubmitBinaryTrust = function(subject, value, expire) {
-        var package = this.targetService.BuildBinaryTrust(subject, value, null, expire);
+        var self = this;
+        var package = this.subjectService.BuildBinaryTrust(subject, value, null, expire);
         this.packageBuilder.SignPackage(package);
+        $.notify("Updating trust", 'success');
         this.trustchainService.PostTrust(package).done(function(trustResult){
-            console.log("Posting package is a "+trustResult.status);
+            //$.notify("Updating view",trustResult.status.toLowerCase());
+            console.log("Posting package is a "+trustResult.status.toLowerCase());
+
+            self.QueryAndRender().then(function() {
+                //$.notify("Done",'success');
+            }).fail(function(trustResult){ 
+                $.notify("Query failed: " +trustResult.message,"fail");
+            });
+
+        }).fail(function(trustResult){ 
+            $.notify("Adding trust failed: " +trustResult.message,"fail");
+        });
+    }
+
+    Reddit.prototype.QueryAndRender = function() {
+        var self = this;
+        return this.trustchainService.Query(self.targets).then(function(result) {
+            if (result || result.status == "Success") 
+            self.queryResult = result.data.results;
+            else
+                console.log(result.message);
+            
+            self.trustHandler = new TrustHandler(self.queryResult, self.settings);
+
+            self.RenderLinks();
         });
     }
 
@@ -232,21 +258,11 @@ var Reddit = (function () {
 var settingsController = new SettingsController();
 settingsController.loadSettings(function (settings) {
     var packageBuilder = new PackageBuilder(settings);
-    var targetService = new TargetService(settings, packageBuilder);
+    var subjectService = new SubjectService(settings, packageBuilder);
     var trustchainService = new TrustchainService(settings);
    
-    var reddit = new Reddit(settings,  packageBuilder, targetService, trustchainService);
+    var reddit = new Reddit(settings,  packageBuilder, subjectService, trustchainService);
 
     reddit.EnableProof();
-    reddit.trustchainService.Query(reddit.targets).done(function(result) {
-        if (result || result.status == "Success") 
-            reddit.queryResult = result.data.results;
-        else
-            console.log(result.message);
-        
-        reddit.trustHandler = new TrustHandler(reddit.queryResult, settings);
-
-        reddit.RenderLinks();
-        
-    });
+    reddit.QueryAndRender();
 });
