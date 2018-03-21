@@ -1,24 +1,28 @@
 
 var currentTab = null;
 var currentWindow = null;
-var currentTarget = null;
 
-chrome.runtime.onMessage.addListener(function(request) {
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.command === 'openDialog') {
         GetCurrentWindow(function(window) {
             if(!window)
-                OpenDialog(request);
+                OpenDialog(request, sender.tab.id);
             else
-            {
-                SendMessageToDialog('showTarget', request.data);
-            }
+                SendMessageToDialog('showTarget', request.data, sender.tab.id);
         });
+        return;
     }
 
+    if (request.command === 'updateContent') {
+        chrome.tabs.sendMessage(request.contentTabId, request, function(result) {
+            console.log('updateContent is '+result.status);
+        });
+    }
+    return false;
 });
 
 
-function OpenDialog(request)
+function OpenDialog(request, contentTabId)
 {
     try {
         chrome.tabs.create({
@@ -40,7 +44,7 @@ function OpenDialog(request)
                 function(window) {
                     currentWindow = window;
                     setTimeout(function() { 
-                        SendMessageToDialog('showTarget', request.data); 
+                        SendMessageToDialog('showTarget', request.data, contentTabId); 
                     }, 100);
                     
                 });
@@ -63,9 +67,9 @@ chrome.windows.onRemoved.addListener(function (id) {
         currentWindow = null;
 });
 
-function SendMessageToDialog(command, target, cb) 
+function SendMessageToDialog(command, target, contentTabId, cb) 
 {
-    chrome.tabs.sendMessage(currentTab.id, { command: command, data: target}, cb);
+    chrome.tabs.sendMessage(currentTab.id, { command: command, data: target, contentTabId: contentTabId }, cb);
     //chrome.tabs.update(currentTab.id, {active: true});
     chrome.windows.update(currentWindow.id, {focused:true });
 }

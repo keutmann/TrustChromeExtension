@@ -109,17 +109,17 @@ app.controller("trustlistCtrl", function($scope) {
     };
     
     $scope.trustClick = function(trust) {
-        $scope.BuildAndSubmitBinaryTrust(trust, true, 0);
+        $scope.buildAndSubmitBinaryTrust(trust, true, 0);
         return false;
     };
 
     $scope.distrustClick = function(trust) {
-        $scope.BuildAndSubmitBinaryTrust(trust, false, 0);
+        $scope.buildAndSubmitBinaryTrust(trust, false, 0);
         return false;
     }
 
     $scope.untrustClick= function(trust) {
-        $scope.BuildAndSubmitBinaryTrust(trust, trust.attributesObj.trust, 1);
+        $scope.buildAndSubmitBinaryTrust(trust, trust.attributesObj.trust, 1);
         return false;
     }
 
@@ -131,34 +131,21 @@ app.controller("trustlistCtrl", function($scope) {
             //$.notify("Updating view",trustResult.status.toLowerCase());
             console.log("Posting package is a "+trustResult.status.toLowerCase());
 
-            // $scope.QueryAndRender().then(function() {
-            //     //$.notify("Done",'success');
-            // }).fail(function(trustResult){ 
-            //     $.notify("Query failed: " +trustResult.message,"fail");
-            // });
+            var opt = {
+                command: 'updateContent',
+                contentTabId: $scope.contentTabId
+            }
+            chrome.runtime.sendMessage(opt);
 
         }).fail(function(trustResult){ 
             $.notify("Adding trust failed: " +trustResult.message,"fail");
         });
     }
 
-    $scope.QueryAndRender = function(subject) {
-        return $scope.trustchainService.Query(subject).then(function(result) {
-            if (result || result.status == "Success") 
-            subject.queryResult = result.data.results;
-            else
-                console.log(result.message);
-            
-            subject.trustHandler = new TrustHandler(subject.queryResult, $scope.settings);
-
-            $scope.load(subject);
-        });
-    }
-
-
     chrome.runtime.onMessage.addListener(
         function(request, sender, sendResponse) {
           if (request.command == "showTarget") {
+                $scope.contentTabId = request.tabId;
                 $scope.load(request.data);
                 sendResponse({result: "ok"});
           }
