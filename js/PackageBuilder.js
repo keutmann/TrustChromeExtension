@@ -69,14 +69,18 @@ var PackageBuilder = (function() {
         if(trust.issuerScript)
             offset += buf.write(trust.issuerScript.toLowerCase(), offset);
 
-        if(trust.issuerAddress)
-            offset += trust.issuerAddress.copy(buf, offset, 0, trust.issuerAddress.length);
+        if(trust.issuerAddress) {
+            var address = trust.issuerAddress.base64ToBuffer();
+            offset += address.copy(buf, offset, 0, trust.issuerAddress.length);
+        }
 
         if(trust.subjectScript)
             offset += buf.write(trust.subjectScript.toLowerCase(), offset);
 
-        if(trust.subjectAddress)
-            offset += trust.subjectAddress.copy(buf, offset, 0, trust.subjectAddress.length); // Bytes!
+        if(trust.subjectAddress) {
+            var address = trust.subjectAddress.base64ToBuffer();
+            offset += address.copy(buf, offset, 0, trust.subjectAddress.length); // Bytes!
+        }
 
         if(trust.type)
             offset += buf.write(trust.type.toLowerCase(), offset);

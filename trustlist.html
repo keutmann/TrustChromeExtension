@@ -35,7 +35,7 @@
     <script src="lib/angularJS/angular.min.js"></script>
     <script src="lib/identiconjs/identicon.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
-    <script src="lib/notify.min.js"></script>
+    <script src="lib/notify/notify.min.js"></script>
     <script src="js/common.js"></script>
     <script src="js/SettingsController.js"></script>
     <script src="js/PackageBuilder.js"></script>
@@ -69,6 +69,7 @@
                             </div>
                             <div ng-class="subject.aliasClass">Alias:{{ subject.alias }}</div>
                             <div ng-hide="!subject.owner.addressHex" class="small">Owner entity: <img ng-src="data:image/svg+xml;base64,{{ subject.owner.identiconData16 }}"> {{ subject.owner.addressHex }}</div>
+                            <!-- <div>Base64: {{ subject.address }}</div> -->
                         </td>
                         <td>
                         </td>
@@ -91,6 +92,7 @@
                                 <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
                             </div>
                             <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
+                            <!-- <div>Base64: {{ trust.address }}</div> -->
                         </td>
                         <td>
                             <span class="trusted">{{ trust.parseAttributes.trust }}</span>
@@ -114,6 +116,7 @@
                                 <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
                             </div>
                             <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
+                            <!-- <div>Base64: {{ trust.address }}</div> -->
                         </td>
                         <td>
                             <span class="trusted">{{ trust.parseAttributes.trust }}</span>

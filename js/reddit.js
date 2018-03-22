@@ -269,10 +269,8 @@ settingsController.loadSettings(function (settings) {
     // Update the content when trust changes on the Trustlist.html popup
     chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if (request.command === 'updateContent') {
-            reddit.QueryAndRender().then(sendResponse);
-            return true;
+            reddit.QueryAndRender();
         }
-        return false;
     });
 });
 

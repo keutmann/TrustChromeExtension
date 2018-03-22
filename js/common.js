@@ -33,46 +33,18 @@ function ParseTrustMe(a) {
 }
 
 
-
-
-// function BuildTrust(settings, target) {
-//     var trustBuilder = new TrustBuilder(settings.publicKeyHash);
-
-//     if (target.id) { // The target has an id !
-//         //.publicKeyHash
-//         var objId = new tce.buffer.Buffer(target.id, 'HEX');
-//         var idaddress = tce.bitcoin.crypto.hash160(objId);
-        
-//         /*
-//         var objSig = new tce.buffer.Buffer(target.sig, 'HEX');
-//         var targetID = new tce.buffer.Buffer(target.target, 'HEX');
-//         var ecSig = tce.bitcoin.ECSignature.fromDER(objSig);
-
-//         if (!linkKeyPair.verify(targetID, ecSig)) {
-//             console.log("Invalid signature on id : " + objId.toString('HEX'));
-//             Alert("Invalid signature on id : " + objId.toString('HEX'));
-//             return;
-//         }
-//         */
-//         // Identity subject
-//         var idSubject = trustBuilder.addSubject(idaddress, target.type, target.scope);
-//         if (target.trust)
-//             idSubject.claim["trust"] = target.trust;
-
-//         // Name subject
-//         trustBuilder.addSubjectByContent(target, "name");  // Add second subject trust with the name 
-//     }
-//     else 
-//         trustBuilder.addSubjectByContent(target);  // Default content subject
-
-//     trustBuilder.signIssuer(settings.keyPair);
-//     return trustBuilder.trust;
-// }
-
 tce.buffer.Buffer.prototype.toJSON = function toJSON() {
     return this.toString('base64');
 }
 
+
+tce.buffer.Buffer.prototype.base64ToBuffer = function () {
+    return this;
+}
+
+String.prototype.base64ToBuffer = function() {
+    return new tce.buffer.Buffer(this.toString(), 'base64');
+}
 
 function GetTargetAddress(target) {
     var address = (target.id) ? GetAddress(target.id, target.sig, target.content) :

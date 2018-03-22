@@ -118,8 +118,8 @@ app.controller("trustlistCtrl", function($scope) {
         return false;
     }
 
-    $scope.untrustClick= function(trust) {
-        $scope.buildAndSubmitBinaryTrust(trust, trust.attributesObj.trust, 1);
+    $scope.untrustClick = function(trust) {
+        $scope.buildAndSubmitBinaryTrust(trust, true, 1);
         return false;
     }
 
@@ -145,7 +145,7 @@ app.controller("trustlistCtrl", function($scope) {
     chrome.runtime.onMessage.addListener(
         function(request, sender, sendResponse) {
           if (request.command == "showTarget") {
-                $scope.contentTabId = request.tabId;
+                $scope.contentTabId = request.contentTabId;
                 $scope.load(request.data);
                 sendResponse({result: "ok"});
           }
