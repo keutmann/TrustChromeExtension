@@ -37,6 +37,19 @@ var TrustchainService = (function() {
         return obj;
     }
 
+    TrustchainService.prototype.GetTrustById = function(id) {
+        var url ='/api/trust/get/'+id; // id = encoded byte array
+    
+        return this.GetData(url);
+    }
+
+    TrustchainService.prototype.GetSimilarTrust = function(trust) {
+        var url ='/api/trust/get/?issuer='+trust.issuerAddress+'&subject='+trust.subjectAddress+'&type='+trust.type+'&scope='+trust.scope;
+    
+        return this.GetData(url);
+    }
+
+
     TrustchainService.prototype.GetTrustTemplate = function(subject, alias) {
         var url ='/api/trust/build?issuer='+settings.publicKeyHash+'&subject='+subject+'&alias='+alias;
     

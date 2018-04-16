@@ -107,7 +107,14 @@ app.controller("trustlistCtrl", function($scope) {
         if(!size) size = 64;
         return new Identicon(address, {margin:0.1, size:size, format: 'svg'}).toString();
     };
-    
+
+    $scope.trustDataClick = function(trust) {
+        $scope.trustchainService.GetSimilarTrust(trust).done(function(result){
+            $scope.trustData =  JSON.stringify(result.data, undefined, 2);
+            $scope.jsonVisible = true;
+        });
+    }
+
     $scope.trustClick = function(trust) {
         $scope.buildAndSubmitBinaryTrust(trust, true, 0);
         return false;
