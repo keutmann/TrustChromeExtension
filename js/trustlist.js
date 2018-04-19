@@ -115,6 +115,16 @@ app.controller("trustlistCtrl", function($scope) {
         });
     }
 
+    $scope.verifyTrustLink = function(trust) {
+        var url = $scope.settings.infoserver+
+            "/resources/trust.htm?issuerAddress="+encodeURIComponent(trust.issuerAddress)+
+            "&subjectAddress="+encodeURIComponent(trust.subjectAddress)+
+            "&type="+encodeURIComponent(trust.type)+
+            "&scope="+encodeURIComponent(trust.scope);
+        return url;
+    }
+
+
     $scope.trustClick = function(trust) {
         $scope.buildAndSubmitBinaryTrust(trust, true, 0);
         return false;
@@ -126,7 +136,7 @@ app.controller("trustlistCtrl", function($scope) {
     }
 
     $scope.untrustClick = function(trust) {
-        $scope.buildAndSubmitBinaryTrust(trust, true, 1);
+        $scope.buildAndSubmitBinaryTrust(trust, true, 0);
         return false;
     }
 

@@ -33,7 +33,7 @@
     </style>
     <script src="lib/jquery/jquery-2.0.3.min.js"></script>
     <script src="lib/angularJS/angular.min.js"></script>
-    <script src="lib/bootstrap/dist/js/bootsrap.min.js"></script>
+    <script src="lib/bootstrap/dist/js/bootstrap.min.js"></script>
     <script src="lib/identiconjs/identicon.js"></script>
     <script src="lib/bitcoinjs/bitcoin.js"></script>
     <script src="lib/notify/notify.min.js"></script>
@@ -93,7 +93,7 @@
                                 <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
                             </div>
                             <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
-                            <div><a href="#" data-toggle="modal" ng-click="trustDataClick(trust)" ng-title="Trust data">Trust data</a></div>
+                            <div><a ng-href="{{ verifyTrustLink(trust) }}" target="_blank" ng-title="Trust data">Verify Trust 3</a></div>
                             <!-- <div>Base64: {{ trust.address }}</div> -->
                         </td>
                         <td>
@@ -118,7 +118,7 @@
                                 <a href="#" ng-click="untrustClick(trust);" ng-title="Trust {{ trust.alias }}">[U]</a>
                             </div>
                             <div ng-hide="!trust.alias">Alias: {{ trust.alias }}</div>
-                            <div><a href="#" data-toggle="modal" ng-click="trustDataClick(trust)" ng-title="Trust data">Trust data</a></div>
+                            <div><a ng-href="{{ verifyTrustLink(trust) }}" target="_blank" ng-title="Trust data">Verify Trust 3</a></div>
                             <!-- <div>Base64: {{ trust.address }}</div> -->
                         </td>
                         <td>

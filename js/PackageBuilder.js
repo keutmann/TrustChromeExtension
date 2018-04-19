@@ -6,7 +6,6 @@ var PackageBuilder = (function() {
         this.CONFIRMTRUST_TC1 = "confirm.tc1";
         this.RATING_TC1 = "rating.tc1";
         this.IDENTITY_TC1 = "identity.tc1";
-
     }
 
 
@@ -51,6 +50,7 @@ var PackageBuilder = (function() {
             type: type,
             scope: (scope) ? scope: "",
             attributes: (attributes) ? attributes : "",
+            created: Math.round(Date.now()/1000.0),
             cost: 100,
             activate: (activate) ? activate: 0,
             expire: (expire) ? expire: 0
@@ -91,6 +91,7 @@ var PackageBuilder = (function() {
         if(trust.attributes)
             offset += buf.write(trust.attributes, offset);
 
+        offset = buf.writeInt32LE(trust.created, offset);
         offset = buf.writeInt32LE(trust.cost, offset);
         offset = buf.writeInt32LE(trust.activate, offset);
         offset = buf.writeInt32LE(trust.expire, offset);
