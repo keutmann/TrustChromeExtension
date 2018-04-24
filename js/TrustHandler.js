@@ -19,15 +19,15 @@ var TrustHandler = (function() {
         for(var trustIndex in this.package.trusts)
         {
             var trust = this.package.trusts[trustIndex];
-            trust.attributesObj = JSON.parse(trust.attributes);
+            trust.attributesObj = JSON.parse(trust.claim);
 
-            var list = this.subjects[trust.subjectAddress];
+            var list = this.subjects[trust.subject.address];
             if(!list) {
                 list = []
-                this.subjects[trust.subjectAddress] = list;
+                this.subjects[trust.subject.address] = list;
             } 
 
-            list[trust.issuerAddress] = trust;
+            list[trust.issuer.address] = trust;
         }
     }
 
@@ -55,7 +55,7 @@ var TrustHandler = (function() {
                  else
                     result.isTrusted--;
                                 // IssuerAddress is base64
-                if(trust.issuerAddress == this.settings.publicKeyHashBase64)
+                if(trust.issuer.address == this.settings.publicKeyHashBase64)
                 {
                     result.direct = true;
                     result.directValue = trust.attributesObj.trust;

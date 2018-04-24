@@ -50,13 +50,13 @@ app.controller("trustlistCtrl", function($scope) {
         for(var index in $scope.subject.trusts) {
             var trust = $scope.subject.trusts[index];
 
-            trust.address = trust.issuerAddress; 
+            trust.address = trust.issuer.address; 
 
             // If trust is a BinaryTrust, decorate the trust object with data
             if(trust.type == $scope.packageBuilder.BINARYTRUST_TC1) {
-                $scope.binarytrusts[trust.subjectAddress] = trust;
-                trust.issuerAddressHex = (new tce.buffer.Buffer(trust.issuerAddress, 'base64')).toString("HEX");
-                trust.identiconData = $scope.getIdenticoinData(trust.issuerAddressHex);
+                $scope.binarytrusts[trust.subject.address] = trust;
+                trust.issuer.addressHex = (new tce.buffer.Buffer(trust.issuer.address, 'base64')).toString("HEX");
+                trust.identiconData = $scope.getIdenticoinData(trust.issuer.addressHex);
 
                 // Add trust to the right list
                 if(trust.attributesObj.trust)
@@ -78,7 +78,7 @@ app.controller("trustlistCtrl", function($scope) {
             // Ensure alias on trust, if exist
             if(trust.type == $scope.packageBuilder.IDENTITY_TC1) {
 
-                $scope.binarytrusts[trust.subjectAddress].alias = trust.parseAttributes.alias + ($scope.subject.binaryTrust.direct) ? " (You)": "";
+                $scope.binarytrusts[trust.subject.address].alias = trust.parseAttributes.alias + ($scope.subject.binaryTrust.direct) ? " (You)": "";
             }
         }
         
@@ -116,11 +116,14 @@ app.controller("trustlistCtrl", function($scope) {
     }
 
     $scope.verifyTrustLink = function(trust) {
+
+
         var url = $scope.settings.infoserver+
-            "/resources/trust.htm?issuerAddress="+encodeURIComponent(trust.issuerAddress)+
-            "&subjectAddress="+encodeURIComponent(trust.subjectAddress)+
+            "/resources/trust.htm?issuerAddress="+encodeURIComponent(trust.issuer.address)+
+            "&subjectAddress="+encodeURIComponent(trust.subject.address)+
             "&type="+encodeURIComponent(trust.type)+
-            "&scope="+encodeURIComponent(trust.scope);
+            "&scopetype="+encodeURIComponent((trust.scope) ? trust.scope.type : "")+
+            "&scopevalue="+encodeURIComponent((trust.scope) ? trust.scope.value : "");
         return url;
     }
 

@@ -27,69 +27,100 @@ var PackageBuilder = (function() {
 
     PackageBuilder.prototype.CreateBinaryTrust = function(issuer, script, subject, value, note, scope, activate, expire)
     {
-        var attributes = { trust: value }
+        var claim = { trust: value }
         if(!isNullOrWhitespace(note))
-            attributes.note = note;
+            claim.note = note;
             
-        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(attributes), activate, expire);
+        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(claim), activate, expire);
         return trust;
     }
 
-    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, attributes, scope, activate, expire)
+    PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, claim, scope, activate, expire)
     {
         //var attributes = { alias: value }
-        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(attributes), activate, expire);
+        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(claim), activate, expire);
         return trust;
     }
 
-    PackageBuilder.prototype.CreateTrust = function(issuer, script, subject, type, scope, attributes, activate, expire)  {
+    PackageBuilder.prototype.CreateTrust = function(issuer, script, subject, type, scope, claim, activate, expire)  {
+        // var trust = {
+        //     issuerScript: script,
+        //     issuerAddress: issuer,
+        //     subjectAddress: subject,
+        //     type: type,
+        //     scope: (scope) ? scope: "",
+        //     attributes: (attributes) ? attributes : "",
+        //     created: Math.round(Date.now()/1000.0),
+        //     cost: 100,
+        //     activate: (activate) ? activate: 0,
+        //     expire: (expire) ? expire: 0
+        // }
+        if(typeof scope === 'string')
+            scope = { value : scope };
+
         var trust = {
-            issuerScript: script,
-            issuerAddress: issuer,
-            subjectAddress: subject,
+            issuer : { 
+                type: script,
+                address: issuer
+            },
+            subject : {
+                address: subject
+            },
             type: type,
-            scope: (scope) ? scope: "",
-            attributes: (attributes) ? attributes : "",
+            claim: (claim) ? claim : "",
+            scope: (scope) ? scope: undefined,
             created: Math.round(Date.now()/1000.0),
             cost: 100,
             activate: (activate) ? activate: 0,
             expire: (expire) ? expire: 0
         }
+
         return trust;
     }
 
     PackageBuilder.prototype.SignTrust = function(trust) {
         var id = (typeof trust.id === 'string') ? new tce.buffer.Buffer(trust.id, 'base64') : trust.id;
-        trust.issuerSignature = this.settings.keyPair.signCompact(id);
+        trust.issuer.signature = this.settings.keyPair.signCompact(id);
     }
 
     PackageBuilder.prototype.CalculateTrustId = function(trust) {
         var buf = new tce.buffer.Buffer(1024 * 256); // 256 Kb
         var offset = 0;
-        if(trust.issuerScript)
-            offset += buf.write(trust.issuerScript.toLowerCase(), offset);
 
-        if(trust.issuerAddress) {
-            var address = trust.issuerAddress.base64ToBuffer();
-            offset += address.copy(buf, offset, 0, trust.issuerAddress.length);
+        if(trust.issuer) {
+            if(trust.issuer.type)
+                offset += buf.write(trust.issuer.type.toLowerCase(), offset);
+
+            if(trust.issuer.address) {
+                var address = trust.issuer.address.base64ToBuffer();
+                offset += address.copy(buf, offset, 0, trust.issuer.address.length);
+            }
         }
 
-        if(trust.subjectScript)
-            offset += buf.write(trust.subjectScript.toLowerCase(), offset);
+        if(trust.subject) {
+            if(trust.subject.type)
+                offset += buf.write(trust.subject.type.toLowerCase(), offset);
 
-        if(trust.subjectAddress) {
-            var address = trust.subjectAddress.base64ToBuffer();
-            offset += address.copy(buf, offset, 0, trust.subjectAddress.length); // Bytes!
+            if(trust.subject.address) {
+                var subjectaddress = trust.subject.address.base64ToBuffer();
+                offset += subjectaddress.copy(buf, offset, 0, trust.subject.address.length); // Bytes!
+            }
         }
 
         if(trust.type)
             offset += buf.write(trust.type.toLowerCase(), offset);
 
-        if(trust.scope)
-            offset += buf.write(trust.scope.toLowerCase(), offset);
 
-        if(trust.attributes)
-            offset += buf.write(trust.attributes, offset);
+        if(trust.claim)
+            offset += buf.write(trust.claim, offset);
+
+        if(trust.scope) {
+            if(trust.scope.type)
+                offset += buf.write(trust.scope.type.toLowerCase(), offset);
+
+            if(trust.scope.value)
+                offset += buf.write(trust.scope.value, offset);
+        }
 
         offset = buf.writeInt32LE(trust.created, offset);
         offset = buf.writeInt32LE(trust.cost, offset);

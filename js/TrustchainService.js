@@ -20,15 +20,18 @@ var TrustchainService = (function() {
             scope = target.scope;
         }
     
+        if(typeof scope === 'string')
+            scope = { value : scope };
+
         var obj = {
             "issuers": this.settings.publicKeyHash,
             "subjects": subjects,
     
             // Scope is used to filter on trust resolvement. It can be any text
-            "claimScope": (scope) ? scope : "", // The scope could also be specefic to country, area, products, articles or social medias etc.
+            "scope": (scope) ? scope : undefined, // The scope could also be specefic to country, area, products, articles or social medias etc.
     
             // Claim made about the subject. The format is specified by the version property in the header section.
-            "claimTypes": [
+            "types": [
                 "binarytrust.tc1"
               ],
             "level": 0,
@@ -44,7 +47,7 @@ var TrustchainService = (function() {
     }
 
     TrustchainService.prototype.GetSimilarTrust = function(trust) {
-        var url ='/api/trust/get/?issuer='+trust.issuerAddress+'&subject='+trust.subjectAddress+'&type='+trust.type+'&scope='+trust.scope;
+        var url ='/api/trust/get/?issuer='+trust.issuer.address+'&subject='+trust.subject.address+'&type='+encodeURIComponent(trust.type)+'&scopevalue='+encodeURIComponent((trust.scope) ? trust.scope.value : "");
     
         return this.GetData(url);
     }
