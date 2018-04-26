@@ -119,7 +119,7 @@ app.controller("trustlistCtrl", function($scope) {
 
 
         var url = $scope.settings.infoserver+
-            "/resources/trust.htm?issuerAddress="+encodeURIComponent(trust.issuer.address)+
+            "/trusts?issuerAddress="+encodeURIComponent(trust.issuer.address)+
             "&subjectAddress="+encodeURIComponent(trust.subject.address)+
             "&type="+encodeURIComponent(trust.type)+
             "&scopetype="+encodeURIComponent((trust.scope) ? trust.scope.type : "")+
