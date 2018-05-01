@@ -69,7 +69,7 @@
                                 <a href="#" ng-click="untrustClick(subject);" ng-title="Untrust {{ subject.alias }}">[U]</a>
                             </div>
                             <div ng-class="subject.aliasClass">Alias:{{ subject.alias }}</div>
-                            <div ng-hide="!subject.owner.addressHex" class="small">Owner entity: <img ng-src="data:image/svg+xml;base64,{{ subject.owner.identiconData16 }}"> {{ subject.owner.addressHex }}</div>
+                            <div ng-hide="!subject.owner.addressHex" class="small">Owner entity: <img ng-src="data:image/svg+xml;base64,{{ subject.owner.identiconData16 }}" ng-click="analyseClick(subject.owner)"> {{ subject.owner.addressHex }}</div>
                             <!-- <div>Base64: {{ subject.address }}</div> -->
                         </td>
                         <td>

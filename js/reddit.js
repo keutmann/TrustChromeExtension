@@ -37,8 +37,16 @@ var Reddit = (function () {
                 if ($proof.length > 0) {
                     var params = getQueryParams($proof.attr("href"));
                     if(params.name == target.alias) {
-                        target.owner = params;
-                        target.owner.type = "entity";
+                        var owner = self.targets[authorName+"_owner"];
+                        if(!owner) {
+                            target.owner = params;
+                            target.owner.type = "entity";
+                            target.owner.address = new tce.buffer.Buffer(target.owner.address, 'HEX');
+                            target.owner.alias = authorName;
+                            target.owner.scope = window.location.hostname;
+
+                            self.targets[authorName+"_owner"] = target.owner;
+                        }
                     }
                 }
             }

@@ -40,7 +40,7 @@ app.controller("trustlistCtrl", function($scope) {
 
         // The subject has an owner
         if($scope.subject.owner.address) {
-            $scope.subject.owner.addressHex = $scope.subject.owner.address.toString('HEX');
+            $scope.subject.owner.addressHex = (new tce.buffer.Buffer($scope.subject.owner.address, 'base64')).toString("HEX");
             $scope.subject.owner.identiconData16 = $scope.getIdenticoinData($scope.subject.owner.addressHex, 16);
         }
 
