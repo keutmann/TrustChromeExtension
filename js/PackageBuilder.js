@@ -1,11 +1,14 @@
 var PackageBuilder = (function() {
+
+    PackageBuilder.BINARYTRUST_TC1 = "binarytrust.tc1";
+    PackageBuilder.CONFIRMTRUST_TC1 = "confirm.tc1";
+    PackageBuilder.RATING_TC1 = "rating.tc1";
+    PackageBuilder.IDENTITY_TC1 = "identity.tc1";
+
+    
     function PackageBuilder(settings) {
         this.settings = settings;
 
-        this.BINARYTRUST_TC1 = "binarytrust.tc1";
-        this.CONFIRMTRUST_TC1 = "confirm.tc1";
-        this.RATING_TC1 = "rating.tc1";
-        this.IDENTITY_TC1 = "identity.tc1";
     }
 
 
@@ -31,14 +34,14 @@ var PackageBuilder = (function() {
         if(!isNullOrWhitespace(note))
             claim.note = note;
             
-        var trust = this.CreateTrust(issuer, script, subject, this.BINARYTRUST_TC1, scope, JSON.stringify(claim), activate, expire);
+        var trust = this.CreateTrust(issuer, script, subject, PackageBuilder.BINARYTRUST_TC1, scope, JSON.stringify(claim), activate, expire);
         return trust;
     }
 
     PackageBuilder.prototype.CreateIdentityTrust = function(issuer, script, subject, claim, scope, activate, expire)
     {
         //var attributes = { alias: value }
-        var trust = this.CreateTrust(issuer, script, subject, this.IDENTITY_TC1, scope, JSON.stringify(claim), activate, expire);
+        var trust = this.CreateTrust(issuer, script, subject, PackageBuilder.IDENTITY_TC1, scope, JSON.stringify(claim), activate, expire);
         return trust;
     }
 

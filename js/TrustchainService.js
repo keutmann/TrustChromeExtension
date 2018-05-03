@@ -10,14 +10,12 @@ var TrustchainService = (function() {
         return this.PostData('/api/graph/Query', JSON.stringify(query));
     }
 
-    TrustchainService.prototype.BuildQuery = function(targets) {
+    TrustchainService.prototype.BuildQuery = function(targets, scope) {
         var subjects = [];
-        var scope = "";
         for (var key in targets) {
             var target = targets[key];
             var subject = { address: target.address };
             subjects.push(subject);
-            scope = target.scope;
         }
     
         if(typeof scope === 'string')
@@ -35,7 +33,7 @@ var TrustchainService = (function() {
                 "binarytrust.tc1",
                 "identity.tc1"
               ],
-            "level": 0,
+            "level": 0, // Use default level search (0)
             //"flags": "LeafsOnly"
         }
         return obj;

@@ -32,37 +32,43 @@ var TrustHandler = (function() {
     }
 
 
-    TrustHandler.prototype.CalculateBinaryTrust = function(addressBase64) {
+    TrustHandler.prototype.CalculateBinaryTrust = function(subjectAddressBase64, ownerAddressBase64) {
+        var self = this;
         var result = {
             direct : false,
             directValue: false,
             isTrusted: 0
         };
+        var binaryTrustCount = 0;
         
-        var subjectTrusts = this.subjects[addressBase64];
-        if(!subjectTrusts)
+        var subjectTrusts = self.subjects[subjectAddressBase64];
+        var ownerTrusts = self.subjects[ownerAddressBase64];
+        if(!subjectTrusts && !ownerTrusts)
             return result;
 
-        var binaryTrustCount = 0;
-        for(var i in subjectTrusts) {
-            var trust = subjectTrusts[i];
-            
-            if(trust.type === "binarytrust.tc1") {
-                binaryTrustCount ++;
+        function CalcTrust(trusts) {
+            if(!trusts) return;
+            for(var i in trusts) {
+                var trust = subjectTrusts[i];
+                if(trust.type === PackageBuilder.BINARYTRUST_TC1) {
+                    binaryTrustCount ++;
 
-                if(trust.attributesObj.trust === true) 
-                    result.isTrusted++;
-                 else
-                    result.isTrusted--;
-                                // IssuerAddress is base64
-                if(trust.issuer.address == this.settings.publicKeyHashBase64)
-                {
-                    result.direct = true;
-                    result.directValue = trust.attributesObj.trust;
+                    if(trust.attributesObj.trust === true) 
+                        result.isTrusted++;
+                    else
+                        result.isTrusted--;
+                                    // IssuerAddress is base64
+                    if(trust.issuer.address == self.settings.publicKeyHashBase64)
+                    {
+                        result.direct = true;
+                        result.directValue = trust.attributesObj.trust;
+                    }
                 }
             }
-
         }
+        CalcTrust(subjectTrusts);   
+        CalcTrust(ownerTrusts);
+
         result.trustPercent = Math.floor((result.isTrusted * 100) / binaryTrustCount);
 
         return result;

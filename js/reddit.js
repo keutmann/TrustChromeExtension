@@ -6,6 +6,7 @@
 var Reddit = (function () {
     function Reddit(settings, packageBuilder, subjectService, trustchainService) {
         var self = this;
+        self.OwnerPrefix = "[#owner_]";
         self.settings = settings;
         self.subjectService = subjectService;
         self.targets = [];
@@ -37,7 +38,7 @@ var Reddit = (function () {
                 if ($proof.length > 0) {
                     var params = getQueryParams($proof.attr("href"));
                     if(params.name == target.alias) {
-                        var owner = self.targets[authorName+"_owner"];
+                        var owner = self.targets[self.OwnerPrefix + authorName];
                         if(!owner) {
                             target.owner = params;
                             target.owner.type = "entity";
@@ -186,10 +187,15 @@ var Reddit = (function () {
         }
         
         for(var authorName in this.targets) {
-            var subject = this.targets[authorName];
+            if(authorName.indexOf(self.OwnerPrefix) == 0)
+                continue; // Ignore owners
 
+            var subject = this.targets[authorName];
             subject.queryResult = self.queryResult;
-            subject.binaryTrust = self.trustHandler.CalculateBinaryTrust(subject.address.toString('base64'));
+            var owner = this.targets[self.OwnerPrefix + authorName];
+            var ownerAddressBase64 = (owner) ? owner.address.toString('base64') : "";
+            subject.binaryTrust = self.trustHandler.CalculateBinaryTrust(subject.address.toString('base64'), ownerAddressBase64);
+
 
             var $tagLine = $('p.tagline a.id-'+subject.thingId);
             
@@ -247,7 +253,7 @@ var Reddit = (function () {
 
     Reddit.prototype.QueryAndRender = function() {
         var self = this;
-        return this.trustchainService.Query(self.targets).then(function(result) {
+        return this.trustchainService.Query(self.targets, window.location.hostname).then(function(result) {
             if (result || result.status == "Success") 
             self.queryResult = result.data.results;
             else

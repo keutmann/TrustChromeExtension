@@ -29,7 +29,7 @@ var SubjectService = (function() {
                 subjectAddress, 
                 value, 
                 note,
-                target.scope,
+                "", // Do not use scope on global identity
                 0,
                 expire);
             package.trusts.push(ownerTrust);
