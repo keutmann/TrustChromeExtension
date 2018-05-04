@@ -185,6 +185,18 @@ var Reddit = (function () {
             });
             return $alink;
         }
+
+        this.CreateIcoin = function($nameLink, name) {
+            if($nameLink.data('trusticon'))
+                return;
+            var imgURL = chrome.extension.getURL("img/"+name);
+            var $alink = $('<a href="javascript:void(0);" class="entrytrusticon"><img src="' + imgURL + '"></a>');
+            $alink.click(function() {
+                $(this).closest('div.entry').children('form, ul').toggle();
+            });
+            $alink.insertBefore($nameLink);
+            $nameLink.data("trusticon", true);
+        }
         
         for(var authorName in this.targets) {
             if(authorName.indexOf(self.OwnerPrefix) == 0)
@@ -197,7 +209,9 @@ var Reddit = (function () {
             subject.binaryTrust = self.trustHandler.CalculateBinaryTrust(subject.address.toString('base64'), ownerAddressBase64);
 
 
-            var $tagLine = $('p.tagline a.id-'+subject.thingId);
+            var $nameLink = $('p.tagline a.id-'+subject.thingId);
+            var $tagLine = $nameLink.parent();
+            var $entry = $tagLine.closest('div.entry');
             
             $span = $("<span class='userattrs' id='tcButtons'></span>");
             
@@ -216,17 +230,41 @@ var Reddit = (function () {
             if(subject.binaryTrust.direct) 
                 $span.append(self.CreateLink(subject, "U", "Untrust "+authorName, true, 1));
 
-            var $oldSpan = $tagLine.parent().find('#tcButtons');
+
+            if(subject.binaryTrust.isTrusted == 0) {
+                $tagLine.children(".entrytrusticon").remove();
+            }                
+
+            if(subject.binaryTrust.isTrusted > 0) {
+                if(self.settings.trustrender == "color") 
+                    $entry.css("background-color", self.settings.trustrendercolor);
+                else 
+                if(self.settings.trustrender == "icon") {
+                    self.CreateIcoin($nameLink, "check16.png");
+                }
+            }
+                    
+            if(subject.binaryTrust.isTrusted < 0) {
+                if(self.settings.resultrenderhide)
+                    $entry.children('form, ul').hide();
+
+                if(self.settings.resultrender == "color") {
+                    $entry.css("background-color", self.settings.resultrendercolor);
+                    $nameLink.parent().click(function() {
+                        $(this).closest('div.entry').children('form, ul').toggle();
+                    });
+                }
+                else
+                if(self.settings.resultrender == "icon") {
+                    self.CreateIcoin($nameLink, "close16.png");
+                }
+            }
+
+            var $oldSpan = $tagLine.find('#tcButtons');
             if($oldSpan.length > 0)
                 $oldSpan.replaceWith($span);
             else
-                $tagLine.after($span);
-            
-            var color = "";
-            if(subject.binaryTrust.isTrusted != 0) 
-                color = (subject.binaryTrust.isTrusted > 0) ? "#EEFFDD": "lightpink";
-                
-            $tagLine.parent().parent().css("background-color", color);
+                $nameLink.after($span);
 
         }
     };

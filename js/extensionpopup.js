@@ -12,14 +12,20 @@ $("#savebtn").click(function () {
     controller.loadSettings(function (items) {
         items["password"] = $("#inputPassword").val();
         items["seed"] = $("#inputSeed").val();
-        items["rememberme"] = $("#rememberMe").is(':checked');
-        items["infoserver"] = $("#infoserver").val();
+        items["rememberme"] = $("#rememberMe").prop('checked');
+        items["infoserver"] = $("#trustserver").val();
         // items["buildserver"] = $("#buildserver").val();
         // items["graphserver"] = $("#graphserver").val();
         
         items["trustrender"] = $("input[name='trustrenderradio']:checked").val();
-        items["resultrender"] = $("input[name='resultrenderradio']:checked").val();
+        items["trustrendercolor"] = "#EEFFDD";
+        items["trustrendericon"] = "check16.png";
 
+        items["resultrender"] = $("input[name='resultrenderradio']:checked").val();
+        items["resultrendercolor"] = "lightpink";
+        items["resultrendericon"] = "close16.png";
+        items["resultrenderhide"] = $("#distrusthide").prop('checked');
+        ;
         controller.saveSettings(items);
         controller.buildKey(items);
         BindSettings(items);
@@ -29,11 +35,15 @@ $("#savebtn").click(function () {
 function BindSettings(items) {
     $("#inputPassword").val(items.password);
     $("#inputSeed").val(items.seed);
-    $("#infoserver").val(items.infoserver);
+    $("#trustserver").val(items.infoserver);
+    $("#rememberMe").prop('checked', items["rememberme"] == true);
+
     // $("#buildserver").val(items.buildserver);
     // $("#graphserver").val(items.graphserver);
     $("[name='trustrenderradio']").val([items.trustrender]);
     $("[name='resultrenderradio']").val([items.resultrender]);
+
+    $("#distrusthide").prop('checked', items["resultrenderhide"] == true);
 
     var address = items.publicKeyHash.toString('HEX');
     $("#address").text(address);

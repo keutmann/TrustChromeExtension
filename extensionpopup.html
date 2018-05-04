@@ -86,10 +86,10 @@
                             <label><input type="radio" name="trustrenderradio" value="noaction">No action</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="trustrenderradio" value="color">Color</label>
+                            <label><input type="radio" name="trustrenderradio" value="icon">Icon</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="trustrenderradio" value="icon">Icon</label>
+                            <label><input type="radio" name="trustrenderradio" value="color">Color</label>
                         </div>
                     </div>
                     <p>Behavior of rendering of distrust</p>
@@ -98,28 +98,26 @@
                             <label><input type="radio" name="resultrenderradio" value="noaction">No action</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="resultrenderradio" value="warning">Color</label>
+                            <label><input type="radio" name="resultrenderradio" value="icon">Icon</label>
                         </div>
                         <div class="radio">
-                            <label><input type="radio" name="resultrenderradio" value="hide">Hide</label>
+                            <label><input type="radio" name="resultrenderradio" value="color">Color</label>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <div class="checkbox">
+                            <label>
+                                <input id="distrusthide" type="checkbox" value="hide" checked>Hide content
+                            </label>
                         </div>
                     </div>
                 </div>
                 <div id="servercontainer" class="tab-pane">
-                    <h2 class="form-signin-heading">Trust servers</h2>
-                    <p>Remote Trust servers</p>
+                    <h2 class="form-signin-heading">Server</h2>
                     <div class="input-group">
-                        <label for="infoserver">Info server</label>
-                        <input type="url" id="infoserver" class="form-control" placeholder="Info server" value="https://trust.dance" required autofocus>
+                        <label for="trustserver">Trust server</label>
+                        <input type="url" id="trustserver" class="form-control" placeholder="Trust server" value="https://trust.dance" required autofocus>
                     </div>
-                    <!-- <div class="input-group">
-                        <label for="buildserver">Build server</label>
-                        <input type="url" id="buildserver" class="form-control" placeholder="Build server" value="https://trust.dance:12701" required>
-                    </div>
-                    <div class="input-group">
-                        <label for="graphserver">Trust server</label>
-                        <input type="url" id="graphserver" class="form-control" placeholder="Graph server" value="https://trust.dance:12702" required>
-                    </div> -->
                 </div>
             </div>
         </form>
