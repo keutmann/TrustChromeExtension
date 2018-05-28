@@ -331,8 +331,8 @@ var RedditD2X = (function () {
     RedditD2X.prototype.updateUser = function(event, data) {
         if(data.update || !event.target.jsapiTarget) return; 
 
-        TagBar.bind(subject, event, this.settings, this.packageBuilder);
-        TagBar.update(1,0);
+        let instance = TagBar.bind(subject, event, this.settings, this.packageBuilder);
+        instance.update(1,0);
     }
 
 
