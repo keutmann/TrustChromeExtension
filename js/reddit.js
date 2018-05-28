@@ -331,14 +331,8 @@ var RedditD2X = (function () {
     RedditD2X.prototype.updateUser = function(event, data) {
         if(data.update || !event.target.jsapiTarget) return; 
 
-        const tagBar = new TagBar(event.target.jsapiTarget);
-        tagBar.createButton('link', "Trust "+event.detail.data.author, "T");
-        tagBar.createButton('link', "Distrust "+event.detail.data.author, "D");
-        tagBar.createButton('link', "Neutral "+event.detail.data.author, "N");
-
-        tagBar.render();
-
-        //console.log(element.id);
+        TagBar.bind(subject, event, this.settings, this.packageBuilder);
+        TagBar.update(1,0);
     }
 
 
