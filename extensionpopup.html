@@ -24,7 +24,7 @@
                 <li class="active"><a href="#usercontainer" data-toggle="tab">User</a></li>
                 <li><a href="#settingscontainer" data-toggle="tab">Settings</a></li>
                 <li><a href="#servercontainer" data-toggle="tab">Server</a></li>
-                <!--<li><a href="#aboutcontainer" data-toggle="tab">About</a></li>-->
+                <li><a href="#aboutcontainer" data-toggle="tab">About</a></li>
             </ul>
         </div>
     </nav>
@@ -35,7 +35,7 @@
             <div id="my-tab-content" class="tab-content">
                 <div id="usercontainer" class="tab-pane active">
                     <h3 class="form-signin-heading">User identity</h3>
-                    <p>The user account ID are generated from the Password and the additional seed (optional). There is no need to create an account up front.</p>
+                    <p>The user account ID are generated from the Password and the additional seed (optional). No signup is needed.</p>
                     <div><label for="inputPassword">Password</label></div>
                     <div class="input-group">
                         <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
@@ -79,8 +79,8 @@
                     </div>
                 </div>
                 <div id="settingscontainer" class="tab-pane">
-                    <h2 class="form-signin-heading">Trust settings</h2>
-                    <p>Behavior of rendering of trust</p>
+                    <h3 class="form-signin-heading">Trust settings</h3>
+                    <div>Behavior of rendering trust <img src="img/check16.gif"></div>
                     <div class="input-group">
                         <div class="radio">
                             <label><input type="radio" name="trustrenderradio" value="noaction">No action</label>
@@ -92,7 +92,7 @@
                             <label><input type="radio" name="trustrenderradio" value="color">Color</label>
                         </div>
                     </div>
-                    <p>Behavior of rendering of distrust</p>
+                    <p>Behavior of rendering distrust <img src="img/close16.png"></p>
                     <div class="input-group">
                         <div class="radio">
                             <label><input type="radio" name="resultrenderradio" value="noaction">No action</label>
@@ -113,10 +113,19 @@
                     </div>
                 </div>
                 <div id="servercontainer" class="tab-pane">
-                    <h2 class="form-signin-heading">Server</h2>
+                    <h3 class="form-signin-heading">Server</h3>
                     <div class="input-group">
                         <label for="trustserver">Trust server</label>
                         <input type="url" id="trustserver" class="form-control" placeholder="Trust server" value="https://trust.dance" required autofocus>
+                    </div>
+                </div>
+                <div id="aboutcontainer" class="tab-pane">
+                    <h3 class="form-signin-heading">About</h3>
+                    <div>
+                        <div>Github repositories</div>
+                        <div><a href="https://github.com/keutmann/Trustchain" target="_blank">Trustchain documentation</a></div>
+                        <div><a href="https://github.com/keutmann/TrustChromeExtension" target="_blank">Trustchain Chrome Extension</a></div>
+                        <div><a href="https://github.com/keutmann/Trustchain-Solution" target="_blank">Trustchain Server</a></div>
                     </div>
                 </div>
             </div>

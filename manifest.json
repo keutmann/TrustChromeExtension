@@ -44,6 +44,7 @@
         "js/PackageBuilder.js",
         "js/TrustHandler.js",
         "js/SubjectService.js",
+        "js/TagBar.js",
         "js/reddit.js"
       ],
       "run_at": "document_end"

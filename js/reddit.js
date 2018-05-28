@@ -300,12 +300,133 @@ var Reddit = (function () {
             self.trustHandler = new TrustHandler(self.queryResult, self.settings);
 
             self.RenderLinks();
-        });
+        }, DeferredFail);
     }
 
     return Reddit;
 }());
 
+
+function DeferredFail(error, arg1, arg2) {
+    console.log(error);
+}
+
+
+var RedditD2X = (function () {
+    function RedditD2X(settings, packageBuilder, subjectService, trustchainService) {
+        var self = this;
+        self.OwnerPrefix = "[#owner_]";
+        self.settings = settings;
+        self.subjectService = subjectService;
+        self.targets = [];
+        self.packageBuilder = packageBuilder;
+        self.trustchainService = trustchainService;
+        self.queryResult = {};
+        self.callbacks = [];
+
+
+    }
+
+
+    RedditD2X.prototype.updateUser = function(event, data) {
+        if(data.update || !event.target.jsapiTarget) return; 
+
+        const tagBar = new TagBar(event.target.jsapiTarget);
+        tagBar.createButton('link', "Trust "+event.detail.data.author, "T");
+        tagBar.createButton('link', "Distrust "+event.detail.data.author, "D");
+        tagBar.createButton('link', "Neutral "+event.detail.data.author, "N");
+
+        tagBar.render();
+
+        //console.log(element.id);
+    }
+
+
+    RedditD2X.prototype.bindEvents = function() {
+        const self = this;
+        this.defineEvents();        
+
+        document.addEventListener('reddit', function(e) { self.handleEvent(e) }, true);
+        document.dispatchEvent(new CustomEvent('reddit.ready', {
+			detail: {
+				name: JSAPI_CONSUMER_NAME,
+			},
+		}));
+    }
+
+    RedditD2X.prototype.defineEvents = function() {
+        //this.watchForRedditEvents('post', this.updateUser)
+        this.watchForRedditEvents('commentAuthor', this.updateUser)
+    }
+
+    RedditD2X.prototype.watchForRedditEvents = function(type, callback) {
+        if (!this.callbacks[type]) {
+            this.callbacks[type] = [];
+        }
+        this.callbacks[type].push(callback);
+    }
+        
+
+    RedditD2X.prototype.handleEvent = function(event) {
+        // e = { target, detail: { type, data } }
+        if(!event) return;
+        console.log('Type: '+event.detail.type);
+        const fns = this.callbacks[event.detail.type];
+        if(!fns) {
+            if ('development' === 'development') {
+                console.warn('Unhandled reddit event type:', event.detail.type);
+            }
+            return;
+        }
+   
+
+        let expandoId = `${event.detail.type}|`;
+        switch (event.detail.type) {
+            case 'postAuthor':
+                expandoId += event.detail.data.post.id;
+                break;
+            case 'commentAuthor':
+                expandoId += event.detail.data.comment.id;
+                break;
+            case 'userHovercard':
+                expandoId += `${event.detail.data.contextId}|${event.detail.data.user.id}`;
+                break;
+            case 'subreddit':
+            case 'post':
+            default:
+                expandoId += event.detail.data.id;
+                break;
+        }
+    
+        const update = event.target.expando && event.target.expando.id === expandoId ?
+            (event.target.expando.update || 0) + 1 :
+            0;
+    
+        var data = {
+            id: expandoId,
+            type: event.detail.type,
+            update: update,
+        };
+        event.target.expando = data;
+
+        if(!event.target.jsapiTarget)
+            event.target.jsapiTarget = event.target.querySelector(`[data-name="${JSAPI_CONSUMER_NAME}"]`);
+
+        for (const fn of fns) {
+            try {
+                fn(event, data);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+    }
+        
+
+    return RedditD2X;
+}());
+
+const JSAPI_CONSUMER_NAME = "DTPreddit";
 
 var settingsController = new SettingsController();
 settingsController.loadSettings(function (settings) {
@@ -313,16 +434,23 @@ settingsController.loadSettings(function (settings) {
     var subjectService = new SubjectService(settings, packageBuilder);
     var trustchainService = new TrustchainService(settings);
    
-    var reddit = new Reddit(settings,  packageBuilder, subjectService, trustchainService);
+	if (document.documentElement.getAttribute('xmlns')) {
+        // Old reddit
+        var reddit = new Reddit(settings,  packageBuilder, subjectService, trustchainService);
 
-    reddit.EnableProof();
-    reddit.QueryAndRender();
-
-    // Update the content when trust changes on the Trustlist.html popup
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-        if (request.command === 'updateContent') {
-            reddit.QueryAndRender();
-        }
-    });
+        reddit.EnableProof();
+        reddit.QueryAndRender();
+    
+        // Update the content when trust changes on the Trustlist.html popup
+        chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+            if (request.command === 'updateContent') {
+                reddit.QueryAndRender();
+            }
+        });
+    } else {
+        // Mew reddit
+        var redditD2X = new RedditD2X(settings,  packageBuilder, subjectService, trustchainService);
+        redditD2X.bindEvents()
+    }
 });
 
