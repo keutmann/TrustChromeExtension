@@ -7,6 +7,43 @@ var SubjectService = (function() {
         this.packageBuilder = packageBuilder;
     }
 
+    SubjectService.ensureSubject = function(author) {
+        let subject = this.subjects[author];
+        if (!subject) {
+            subject = {
+                author: author,
+                address:author.hash160(),
+                scope: window.location.hostname,
+                type: "person",
+            };
+            this.subjects[author]= subject;
+        }
+        return subject;
+    }
+
+    SubjectService.enrichSubject = function(author, comment) {
+
+        let subject = this.ensureSubject(author);
+
+        let $proof = $(comment).find("a[href*='scope=reddit']:contains('Proof')")
+        if ($proof.length > 0) {
+            var params = getQueryParams($proof.attr("href"));
+            if(params.name == author) {
+                if(!subject.owner)
+                    subject.owner = params;
+                
+                //subject.owner.type = "person";
+                //subject.owner.address = new tce.buffer.Buffer(target.owner.address, 'HEX');
+                //subject.owner.alias = author;
+                //subject.owner.scope = window.location.hostname;
+
+                //self.targets[authorName+"_owner"] = target.owner;
+            }
+        }
+        return subject;
+    }
+
+
     SubjectService.prototype.BuildBinaryTrust = function(target, value, note, expire) {
         var trust = this.packageBuilder.CreateBinaryTrust(
             this.settings.publicKeyHash, 
@@ -50,6 +87,8 @@ var SubjectService = (function() {
         }
         return package;
     }
+
+    SubjectService.subjects = [];
 
     return SubjectService;
 }())

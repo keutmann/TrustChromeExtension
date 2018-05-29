@@ -315,10 +315,8 @@ function DeferredFail(error, arg1, arg2) {
 var RedditD2X = (function () {
     function RedditD2X(settings, packageBuilder, subjectService, trustchainService) {
         var self = this;
-        self.OwnerPrefix = "[#owner_]";
         self.settings = settings;
         self.subjectService = subjectService;
-        self.targets = [];
         self.packageBuilder = packageBuilder;
         self.trustchainService = trustchainService;
         self.queryResult = {};
@@ -331,9 +329,9 @@ var RedditD2X = (function () {
     RedditD2X.prototype.updateUser = function(event, data) {
         if(data.update || !event.target.jsapiTarget) return; 
 
-        let subject = SubjectContainer.ensureSubject(event.detail.data.author);
+        let subject = SubjectService.enrichSubject(event.detail.data.author, event.target.parentElement.parentElement);
 
-        let instance = TagBar.bind(subject, event, this.settings, this.packageBuilder);
+        let instance = TagBar.bind(data.id, event.target.jsapiTarget, subject, this.settings, this.packageBuilder);
         instance.update(1,0);
     }
 
@@ -366,6 +364,8 @@ var RedditD2X = (function () {
     RedditD2X.prototype.handleEvent = function(event) {
         // e = { target, detail: { type, data } }
         if(!event) return;
+        if(!event.detail) return;
+
         console.log('Type: '+event.detail.type);
         const fns = this.callbacks[event.detail.type];
         if(!fns) {

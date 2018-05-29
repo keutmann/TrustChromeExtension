@@ -44,7 +44,6 @@
         "js/PackageBuilder.js",
         "js/TrustHandler.js",
         "js/SubjectService.js",
-        "js/SubjectContainer.js",
         "js/TagBar.js",
         "js/reddit.js"
       ],

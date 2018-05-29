@@ -7,37 +7,37 @@ var TagBar = (function () {
     function TagBar(subject, settings, packageBuilder) {
         this.subject = subject;
         this.$elements = [];
-        this.$container = $('<span />');
+        this.container = $('<span />')[0];
         this.settings = settings;
         this.packageBuilder = packageBuilder;
     }
 
     // Instance methods
     TagBar.prototype.update = function(networkScore, personalScore) {
-        if (this.$neutralLink && personalScore === 0)) {
+        if (this.$neutralLink.length > 0 && personalScore === 0) {
             this.$neutralLink.hide();
         } else {
             this.$neutralLink.show();
         }
         
-        if (this.$trustLink && personalScore > 0) {
+        if (this.$trustLink.length > 0 && personalScore > 0) {
             this.$trustLink.removeAttr("href");
         } else {
             this.$trustLink.attr('href', 'javascript:void 0');
         }
 
-        if (this.$distrustLink && personalScore < 0) {
+        if (this.$distrustLink.length > 0 && personalScore < 0) {
             this.$distrustLink.removeAttr("href");
         } else {
             this.$distrustLink.attr('href', 'javascript:void 0');
         }
 
 
-        if (this.$trusticon && networkScore === 0) {
+        if (this.$trusticon.length > 0 && networkScore === 0) {
              this.$trusticon.hide();
         } else {
             this.$trusticon.show();
-            if(networkScore > 1) {
+            if(networkScore > 0) {
                 this.$trusticon.attr('src', 'check16.png');
             } else {
                 this.$trusticon.attr('src', 'close16.png');
@@ -49,17 +49,17 @@ var TagBar = (function () {
 
     TagBar.prototype.render = function(htmlElement) {
         let $htmlElement = $(htmlElement);
-        if(!$htmlElement.data(this.TAGBAR_NAME)) return;
+        if($htmlElement.data(TagBar.TAGBAR_NAME)) return;
 
-        if(this.$container.length === 0) {
-            this.$identicon = this.createIdenticon(this.subject, "Analyse "+subject.author);
-            this.$trustLink = this.createButton('link', "Trust "+event.detail.data.author, "T");
-            this.$distrustLink = this.createButton('link', "Distrust "+event.detail.data.author, "D");
-            this.$neutralLink = this.createButton('link', "Neutral "+event.detail.data.author, "N");
+        if(this.container.childElementCount === 0) {
+            this.$identicon = this.createIdenticon(this.subject, "Analyse "+this.subject.author);
+            this.$trustLink = this.createButton('link', "Trust "+this.subject.author, "T");
+            this.$distrustLink = this.createButton('link', "Distrust "+this.subject.author, "D");
+            this.$neutralLink = this.createButton('link', "Neutral "+this.subject.author, "N");
             this.$trusticon = this.createIcoin("check16.png");
         }
-        $htmlElement.append(this.$container);
-        $htmlElement.data(this.TAGBAR_NAME, true);
+        $htmlElement.append(this.container);
+        $htmlElement.data(TagBar.TAGBAR_NAME, true);
     }
     
     TagBar.prototype.createButton = function(type, title, text, event) {
@@ -71,7 +71,7 @@ var TagBar = (function () {
         if (type !== 'text') {
             $element.on('click', event);
         }
-        this.$container.append($element);
+        this.container.appendChild($element[0]);
         return $element;
     }
 
@@ -96,27 +96,27 @@ var TagBar = (function () {
             chrome.runtime.sendMessage(opt);
             return false;
         });
-        this.$container.append($alink);
+        this.container.appendChild($alink[0]);
         return $alink;
     }
 
     TagBar.prototype.createIcoin = function(name) {
-        var imgURL = chrome.extension.getURL("img/"+name);
-        var $img = $('<img src="' + imgURL + '">');
-
-        this.$container.append($img);
-        return $img;
+        const img = document.createElement("img");
+        img.src = chrome.extension.getURL("img/"+name);
+        
+        this.container.appendChild(img);
+        return $(img);
     }
 
     // Static methods
-    TagBar.bind = function(subject, event, settings, packageBuilder) {
-        let instance = this.instances[subject.author];
+    TagBar.bind = function(id, target, subject, settings, packageBuilder) {
+        let instance = this.instances[id];
         if(!instance) {
             instance = new TagBar(subject, settings, packageBuilder);
-            this.instances[subject.author] = instance;
+            this.instances[id] = instance;
         }
 
-        instance.render(event.htmlElement);
+        instance.render(target);
 
         return instance;
     }
