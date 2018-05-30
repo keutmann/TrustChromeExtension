@@ -15,6 +15,7 @@ var SubjectService = (function() {
                 address:author.hash160(),
                 scope: window.location.hostname,
                 type: "person",
+                tagBars: [],
             };
             this.subjects[author]= subject;
         }

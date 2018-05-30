@@ -325,17 +325,6 @@ var RedditD2X = (function () {
 
     }
 
-
-    RedditD2X.prototype.updateUser = function(event, data) {
-        if(data.update || !event.target.jsapiTarget) return; 
-
-        let subject = SubjectService.enrichSubject(event.detail.data.author, event.target.parentElement.parentElement);
-
-        let instance = TagBar.bind(data.id, event.target.jsapiTarget, subject, this.settings, this.packageBuilder);
-        instance.update(1,0);
-    }
-
-
     RedditD2X.prototype.bindEvents = function() {
         const self = this;
         this.defineEvents();        
@@ -349,9 +338,21 @@ var RedditD2X = (function () {
     }
 
     RedditD2X.prototype.defineEvents = function() {
-        //this.watchForRedditEvents('post', this.updateUser)
-        this.watchForRedditEvents('commentAuthor', this.updateUser)
+        const self = this;
+        //this.watchForRedditEvents('postAuthor', this.ensureTabBar)
+        this.watchForRedditEvents('commentAuthor', function(expando, detail) { self.ensureTabBar(expando, detail) });
     }
+
+    RedditD2X.prototype.ensureTabBar = function(expando, detail) {
+        if(expando.update || !expando.jsapiTarget) return; 
+
+        const contentElement = $('#'+expando.contentId);
+        let subject = SubjectService.enrichSubject(detail.data.author, contentElement);
+
+        let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder);
+        instance.update(1,0);
+    }
+
 
     RedditD2X.prototype.watchForRedditEvents = function(type, callback) {
         if (!this.callbacks[type]) {
@@ -376,13 +377,16 @@ var RedditD2X = (function () {
         }
    
 
+        let contentId;
         let expandoId = `${event.detail.type}|`;
         switch (event.detail.type) {
             case 'postAuthor':
                 expandoId += event.detail.data.post.id;
+                contentId = event.detail.data.post.id;
                 break;
             case 'commentAuthor':
                 expandoId += event.detail.data.comment.id;
+                contentId = event.detail.data.comment.id;
                 break;
             case 'userHovercard':
                 expandoId += `${event.detail.data.contextId}|${event.detail.data.user.id}`;
@@ -391,6 +395,7 @@ var RedditD2X = (function () {
             case 'post':
             default:
                 expandoId += event.detail.data.id;
+                contentId = event.detail.data.id;
                 break;
         }
     
@@ -398,19 +403,20 @@ var RedditD2X = (function () {
             (event.target.expando.update || 0) + 1 :
             0;
     
-        var data = {
-            id: expandoId,
-            type: event.detail.type,
-            update: update,
-        };
-        event.target.expando = data;
+        if(!event.target.expando) {
+            event.target.expando = {
+                id: expandoId,
+                contentId: contentId,
+            } ;
 
-        if(!event.target.jsapiTarget)
-            event.target.jsapiTarget = event.target.querySelector(`[data-name="${JSAPI_CONSUMER_NAME}"]`);
+            event.target.expando.jsapiTarget = event.target.querySelector(`[data-name="${JSAPI_CONSUMER_NAME}"]`);
+        }
 
+        event.target.expando.update = update;
+        
         for (const fn of fns) {
             try {
-                fn(event, data);
+                fn(event.target.expando, event.detail);
             } catch (e) {
                 console.log(e);
             }
