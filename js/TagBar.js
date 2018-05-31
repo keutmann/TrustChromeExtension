@@ -20,15 +20,19 @@ var TagBar = (function () {
         }
         
         if (this.$trustLink.length > 0 && personalScore > 0) {
-            this.$trustLink.removeAttr("href");
+            //this.$trustLink.removeAttr("href");
+            this.$trustLink.hide();
         } else {
-            this.$trustLink.attr('href', 'javascript:void 0');
+            //this.$trustLink.attr('href', 'javascript:void 0');
+            this.$trustLink.show();
         }
 
         if (this.$distrustLink.length > 0 && personalScore < 0) {
-            this.$distrustLink.removeAttr("href");
+            //this.$distrustLink.removeAttr("href");
+            this.$distrustLink.hide();
         } else {
-            this.$distrustLink.attr('href', 'javascript:void 0');
+            //this.$distrustLink.attr('href', 'javascript:void 0');
+            this.$distrustLink.show();
         }
 
 
@@ -42,20 +46,32 @@ var TagBar = (function () {
         //         this.$trusticon.attr('src', 'close16.png');
         //     }
         // }
-            
-        if (this.container && networkScore === 0) {
-            this.$bar.attr('style','');
-        } else {
-            if(networkScore > 0) {
-                this.$bar.attr('style','background-color:'+this.settings.trustrendercolor);
+                        
+        if (true) { // this.settings.resultrender === "color") {
+            if (this.$bar.length > 0 && networkScore === 0) {
+                this.$bar.attr('style','');
             } else {
-                this.$bar.attr('style','background-color:'+this.settings.distrustrendercolor);
+                if(networkScore > 0) {
+                    this.$bar.attr('style','background-color:'+this.settings.trustrendercolor);
+                } else {
+                    this.$bar.attr('style','background-color:'+this.settings.resultrendercolor);
+                }
             }
         }
+        
+        if (this.$content && this.$content.length > 0 && networkScore < 0) {
+            if(this.settings.resultrenderhide) {
+                this.$content.hide();
+            } else {
+                this.$content.show();
+            }
+        }
+
 
     }
 
     TagBar.prototype.render = function(expando) {
+        const self = this;
         let $htmlElement = $(expando.jsapiTarget);
         if($htmlElement.data(TagBar.TAGBAR_NAME)) return;
 
@@ -68,7 +84,14 @@ var TagBar = (function () {
             //this.$trusticon.click(function() {
             //    $(this).closest('div.entry').children('form, ul').toggle();
             //});
+
             this.$bar = $(expando.jsapiTarget.parentElement.parentElement);
+            this.$content = this.$bar.next();
+            this.$bar.click(function() {
+                self.$content.toggle();
+            });
+
+
         }
         $htmlElement.append(this.container);
         $htmlElement.data(TagBar.TAGBAR_NAME, true);
@@ -130,13 +153,13 @@ var TagBar = (function () {
         if(!instance) {
             instance = new TagBar(subject, settings, packageBuilder);
             this.instances[id] = instance;
-            subject.tagBars.push(instance);
         }
 
         instance.render(expando);
 
         return instance;
     }
+
     
     // Static properties
     TagBar.TAGBAR_NAME = 'reddittagbar';

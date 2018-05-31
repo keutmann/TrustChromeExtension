@@ -37,7 +37,8 @@ var TrustHandler = (function() {
         var result = {
             direct : false,
             directValue: false,
-            isTrusted: 0
+            isTrusted: 0,
+
         };
         var binaryTrustCount = 0;
         
@@ -73,6 +74,49 @@ var TrustHandler = (function() {
 
         return result;
     }
+
+    TrustHandler.prototype.CalculateBinaryTrust2 = function(subjectAddressBase64, ownerAddressBase64) {
+        var self = this;
+        var result = {
+            networkScore : 0,
+            personalScore: 0,
+        };
+        //var binaryTrustCount = 0;
+        
+        var subjectTrusts = self.subjects[subjectAddressBase64];
+        var ownerTrusts = self.subjects[ownerAddressBase64];
+        if(!subjectTrusts && !ownerTrusts)
+            return result;
+
+        function CalcTrust(trusts) {
+            if(!trusts) return;
+            for(const key in trusts) {
+                const trust = trusts[key];
+
+                if(trust.type != PackageBuilder.BINARYTRUST_TC1)
+                    continue;
+
+                //binaryTrustCount ++;
+
+                if(trust.issuer.address == self.settings.publicKeyHashBase64) { // Its your trust!
+                    result.personalScore += (trust.attributesObj.trust) ? 1 : -1;
+                } else {
+                    result.networkScore += (trust.attributesObj.trust) ? 1 : -1;
+                }
+            }
+        }
+        CalcTrust(subjectTrusts);   
+        CalcTrust(ownerTrusts);
+        
+        if (result.personalScore != 0) {
+            result.networkScore = result.personalScore;
+        }
+
+        //result.trustPercent = Math.floor((result.networkScore * 100) / binaryTrustCount);
+
+        return result;
+    }
+
 
     return TrustHandler;
 }());

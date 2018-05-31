@@ -15,7 +15,6 @@ var SubjectService = (function() {
                 address:author.hash160(),
                 scope: window.location.hostname,
                 type: "person",
-                tagBars: [],
             };
             this.subjects[author]= subject;
         }
@@ -33,12 +32,9 @@ var SubjectService = (function() {
                 if(!subject.owner)
                     subject.owner = params;
                 
-                //subject.owner.type = "person";
-                //subject.owner.address = new tce.buffer.Buffer(target.owner.address, 'HEX');
-                //subject.owner.alias = author;
-                //subject.owner.scope = window.location.hostname;
-
-                //self.targets[authorName+"_owner"] = target.owner;
+                if(typeof subject.owner.address === 'string') {
+                    subject.owner.address = new tce.buffer.Buffer(subject.owner.address, 'HEX');
+                }
             }
         }
         return subject;

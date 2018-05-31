@@ -321,8 +321,31 @@ var RedditD2X = (function () {
         self.trustchainService = trustchainService;
         self.queryResult = {};
         self.callbacks = [];
+        self.callQuery = false;
+        self.environment = 'prod';
+        self.subjects = [];
+        self.targets = [];
+    }
 
+    RedditD2X.prototype.update = function() {
+        const self = this;
 
+        for (const subject of self.targets) {
+            var container = this.subjects[subject.author];
+            for (const key in container.tagBars) {
+                const tagBar = container.tagBars[key];
+
+                if (!subject.result) {
+
+                    subject.queryResult = self.queryResult;
+                    var owner = subject.owner;
+                    var ownerAddressBase64 = (owner) ? owner.address.toString('base64') : "";
+                    subject.result = self.trustHandler.CalculateBinaryTrust2(subject.address.toString('base64'), ownerAddressBase64);
+                }
+
+                tagBar.update(subject.result.networkScore, subject.result.personalScore);
+            }
+        }
     }
 
     RedditD2X.prototype.bindEvents = function() {
@@ -339,8 +362,9 @@ var RedditD2X = (function () {
 
     RedditD2X.prototype.defineEvents = function() {
         const self = this;
-        //this.watchForRedditEvents('postAuthor', this.ensureTabBar)
-        this.watchForRedditEvents('commentAuthor', function(expando, detail) { self.ensureTabBar(expando, detail) });
+        var callback = function(expando, detail) { self.ensureTabBar(expando, detail) };
+        this.watchForRedditEvents('postAuthor', callback)
+        this.watchForRedditEvents('commentAuthor', callback);
     }
 
     RedditD2X.prototype.ensureTabBar = function(expando, detail) {
@@ -348,9 +372,20 @@ var RedditD2X = (function () {
 
         const contentElement = $('#'+expando.contentId);
         let subject = SubjectService.enrichSubject(detail.data.author, contentElement);
+        let container = this.subjects[subject.author];
+        if(!container) {
+            container = {
+                 subject: subject,
+                 tagBars: [],
+            };
+            this.subjects[subject.author] = container;
+        }
 
         let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder);
-        instance.update(1,0);
+        if(subject.result)
+            instance.update(subject.result.networkScore, subject.result.personalScore);
+
+        container.tagBars.push(instance);
     }
 
 
@@ -360,17 +395,60 @@ var RedditD2X = (function () {
         }
         this.callbacks[type].push(callback);
     }
+
+
+    RedditD2X.prototype.queryDTP = function() {
+        const self = this;
+        self.callQuery = false; // Enable the queryDTP to be called again
+
+        self.targets = [];
+        for (const author in this.subjects) {
+            var container = this.subjects[author];
+            if (container.processed) 
+                continue;
+            
+            self.targets.push(container.subject);
+            if (container.subject.owner) {
+                targets.push(container.subject.owner);
+            }
+            container.processed = true;
+        }
         
+        if(self.targets.length === 0)
+            return;
+
+        console.log("Quering the DTP!");
+
+        this.trustchainService.Query(self.targets, window.location.hostname).then(function(result) {
+            if (result || result.status == "Success") 
+                self.queryResult = result.data.results;
+            else
+                console.log(result.message);
+            
+            self.trustHandler = new TrustHandler(self.queryResult, self.settings);
+
+            self.update();
+        }, DeferredFail);
+
+    }    
 
     RedditD2X.prototype.handleEvent = function(event) {
-        // e = { target, detail: { type, data } }
+        const self = this;
+        
+        // A hack to make a function call when all the events have executed.
+        if (!this.callQuery) { 
+            this.callQuery = true;
+            setTimeout(function() { self.queryDTP(); }, 100);
+        }
+        
+
         if(!event) return;
         if(!event.detail) return;
 
-        console.log('Type: '+event.detail.type);
+        //console.log('Type: '+event.detail.type);
         const fns = this.callbacks[event.detail.type];
         if(!fns) {
-            if ('development' === 'development') {
+            if (self.environment === 'development') {
                 console.warn('Unhandled reddit event type:', event.detail.type);
             }
             return;
@@ -423,12 +501,14 @@ var RedditD2X = (function () {
         }
 
     }
-        
+    
 
     return RedditD2X;
 }());
 
 const JSAPI_CONSUMER_NAME = "DTPreddit";
+
+var TT = TrustHandler;
 
 var settingsController = new SettingsController();
 settingsController.loadSettings(function (settings) {
