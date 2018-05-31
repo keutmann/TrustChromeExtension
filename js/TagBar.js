@@ -4,11 +4,13 @@ var TagBar = (function () {
 
 
     // Constructor
-    function TagBar(subject, settings, packageBuilder) {
+    function TagBar(subject, settings, packageBuilder, subjectService) {
         this.subject = subject;
         this.container = $('<span />')[0];
         this.settings = settings;
         this.packageBuilder = packageBuilder;
+        this.subjectService = subjectService;
+        this.updateCallback = undefined;
     }
 
     // Instance methods
@@ -70,16 +72,16 @@ var TagBar = (function () {
 
     }
 
-    TagBar.prototype.render = function(expando) {
+    TagBar.prototype.render = function(expando, subject) {
         const self = this;
         let $htmlElement = $(expando.jsapiTarget);
         if($htmlElement.data(TagBar.TAGBAR_NAME)) return;
 
         if(this.container.childElementCount === 0) {
             this.$identicon = this.createIdenticon(this.subject, "Analyse "+this.subject.author);
-            this.$trustLink = this.createButton('link', "Trust "+this.subject.author, "T");
-            this.$distrustLink = this.createButton('link', "Distrust "+this.subject.author, "D");
-            this.$neutralLink = this.createButton('link', "Neutral "+this.subject.author, "N");
+            this.$trustLink = this.createButton('link', "Trust "+this.subject.author, "T", subject, true, 0);
+            this.$distrustLink = this.createButton('link', "Distrust "+this.subject.author, "D", subject, false, 0);
+            this.$neutralLink = this.createButton('link', "Neutral "+this.subject.author, "N", subject, true, 1);
             //this.$trusticon = this.createIcoin("check16.png");
             //this.$trusticon.click(function() {
             //    $(this).closest('div.entry').children('form, ul').toggle();
@@ -97,18 +99,44 @@ var TagBar = (function () {
         $htmlElement.data(TagBar.TAGBAR_NAME, true);
     }
     
-    TagBar.prototype.createButton = function(type, title, text, event) {
+    TagBar.prototype.createButton = function(type, title, text, subject, value, expire) {
+
         let $element = null;
         switch (type) {
             case 'text' : $element = $("<b title='"+title+"'>["+text+"]</b>"); break;
             case 'link' : $element = $("<a title='"+title+"' href='javascript:void 0'>["+text+"]</a>");
         }
         if (type !== 'text') {
-            $element.on('click', event);
+            $element.click(function() {
+                self.BuildAndSubmitBinaryTrust(subject, value, expire);
+                return false;
+            });
         }
+
+
+
         this.container.appendChild($element[0]);
         return $element;
     }
+
+    TagBar.prototype.BuildAndSubmitBinaryTrust = function(subject, value, expire) {
+        var self = this;
+        var package = this.subjectService.BuildBinaryTrust(subject, value, null, expire);
+        this.packageBuilder.SignPackage(package);
+        $.notify("Updating trust", 'information');
+        this.trustchainService.PostTrust(package).done(function(trustResult){
+            //$.notify("Updating view",trustResult.status.toLowerCase());
+            console.log("Posting package is a "+trustResult.status.toLowerCase());
+
+            if (self.updateCallback) {
+                self.updateCallback(subject);
+            }
+
+        }).fail(function(trustResult){ 
+            $.notify("Adding trust failed: " +trustResult.message,"fail");
+        });
+    }
+
 
     TagBar.prototype.createIdenticon = function(subject, title) {
         var data = new Identicon(subject.address.toString('HEX'), {margin:0.1, size:16, format: 'svg'}).toString();
@@ -147,15 +175,15 @@ var TagBar = (function () {
     }
 
     // Static methods
-    TagBar.bind = function(expando, subject, settings, packageBuilder) {
+    TagBar.bind = function(expando, subject, settings, packageBuilder, subjectService) {
         const id = expando.id;
         let instance = this.instances[id];
         if(!instance) {
-            instance = new TagBar(subject, settings, packageBuilder);
+            instance = new TagBar(subject, settings, packageBuilder, subjectService);
             this.instances[id] = instance;
         }
 
-        instance.render(expando);
+        instance.render(expando, subject);
 
         return instance;
     }

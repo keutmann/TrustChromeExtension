@@ -369,9 +369,25 @@ var RedditD2X = (function () {
 
     RedditD2X.prototype.ensureTabBar = function(expando, detail) {
         if(expando.update || !expando.jsapiTarget) return; 
+        const self = this;
 
         const contentElement = $('#'+expando.contentId);
         let subject = SubjectService.enrichSubject(detail.data.author, contentElement);
+        const container = self.ensureContainer(subject);
+
+        let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder, this.subjectService);
+        instance.updateCallback = function(subject) {
+            self.queryDTP(subject);
+        };
+
+        if(subject.result)
+            instance.update(subject.result.networkScore, subject.result.personalScore);
+
+
+        container.tagBars.push(instance);
+    }
+
+    RedditD2X.prototype.ensureContainer = function(subject) {
         let container = this.subjects[subject.author];
         if(!container) {
             container = {
@@ -379,15 +395,12 @@ var RedditD2X = (function () {
                  tagBars: [],
             };
             this.subjects[subject.author] = container;
+            if (subject.owner) {
+                this.subjects[subject.owner.author] = container;
+            }
         }
-
-        let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder);
-        if(subject.result)
-            instance.update(subject.result.networkScore, subject.result.personalScore);
-
-        container.tagBars.push(instance);
+        return container;
     }
-
 
     RedditD2X.prototype.watchForRedditEvents = function(type, callback) {
         if (!this.callbacks[type]) {
@@ -397,23 +410,30 @@ var RedditD2X = (function () {
     }
 
 
-    RedditD2X.prototype.queryDTP = function() {
+    RedditD2X.prototype.queryDTP = function(custom) {
         const self = this;
         self.callQuery = false; // Enable the queryDTP to be called again
 
         self.targets = [];
-        for (const author in this.subjects) {
-            var container = this.subjects[author];
-            if (container.processed) 
-                continue;
-            
-            self.targets.push(container.subject);
-            if (container.subject.owner) {
-                targets.push(container.subject.owner);
+        if (custom) {
+            if ($.isArray(custom)) {
+                self.targets = custom;
+             } else {
+                self.targets[custom.author] = custom; // Predefined targets!
+             }
+        } else {
+            for (const author in this.subjects) {
+                var container = this.subjects[author];
+                if (container.processed) 
+                    continue;
+                
+                self.targets.push(container.subject);
+                if (container.subject.owner) {
+                    self.targets.push(container.subject.owner);
+                }
+                container.processed = true;
             }
-            container.processed = true;
         }
-        
         if(self.targets.length === 0)
             return;
 

@@ -32,6 +32,8 @@ var SubjectService = (function() {
                 if(!subject.owner)
                     subject.owner = params;
                 
+                subject.owner.author = author;
+
                 if(typeof subject.owner.address === 'string') {
                     subject.owner.address = new tce.buffer.Buffer(subject.owner.address, 'HEX');
                 }
