@@ -335,15 +335,15 @@ var RedditD2X = (function () {
             for (const key in container.tagBars) {
                 const tagBar = container.tagBars[key];
 
-                if (!subject.result) {
+                if (!container.result) {
 
                     subject.queryResult = self.queryResult;
                     var owner = subject.owner;
                     var ownerAddressBase64 = (owner) ? owner.address.toString('base64') : "";
-                    subject.result = self.trustHandler.CalculateBinaryTrust2(subject.address.toString('base64'), ownerAddressBase64);
+                    container.result = self.trustHandler.CalculateBinaryTrust2(subject.address.toString('base64'), ownerAddressBase64);
                 }
 
-                tagBar.update(subject.result.networkScore, subject.result.personalScore);
+                tagBar.update(container.result.networkScore, container.result.personalScore);
             }
         }
     }
@@ -375,14 +375,13 @@ var RedditD2X = (function () {
         let subject = SubjectService.enrichSubject(detail.data.author, contentElement);
         const container = self.ensureContainer(subject);
 
-        let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder, this.subjectService);
+        let instance = TagBar.bind(expando, subject, this.settings, this.packageBuilder, this.subjectService, this.trustchainService);
         instance.updateCallback = function(subject) {
             self.queryDTP(subject);
         };
 
-        if(subject.result)
-            instance.update(subject.result.networkScore, subject.result.personalScore);
-
+        if(container.result)
+            instance.update(container.result.networkScore, container.result.personalScore);
 
         container.tagBars.push(instance);
     }
@@ -419,7 +418,7 @@ var RedditD2X = (function () {
             if ($.isArray(custom)) {
                 self.targets = custom;
              } else {
-                self.targets[custom.author] = custom; // Predefined targets!
+                self.targets.push(custom); // Predefined targets!
              }
         } else {
             for (const author in this.subjects) {
@@ -436,6 +435,11 @@ var RedditD2X = (function () {
         }
         if(self.targets.length === 0)
             return;
+
+        for (const subject of self.targets) {
+            const container = self.subjects[subject.author];
+            container.result = undefined;
+        }
 
         console.log("Quering the DTP!");
 

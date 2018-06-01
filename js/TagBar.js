@@ -4,12 +4,13 @@ var TagBar = (function () {
 
 
     // Constructor
-    function TagBar(subject, settings, packageBuilder, subjectService) {
+    function TagBar(subject, settings, packageBuilder, subjectService, trustchainService) {
         this.subject = subject;
         this.container = $('<span />')[0];
         this.settings = settings;
         this.packageBuilder = packageBuilder;
         this.subjectService = subjectService;
+        this.trustchainService = trustchainService;
         this.updateCallback = undefined;
     }
 
@@ -67,6 +68,8 @@ var TagBar = (function () {
             } else {
                 this.$content.show();
             }
+        } else {
+            this.$content.show();
         }
 
 
@@ -89,7 +92,8 @@ var TagBar = (function () {
 
             this.$bar = $(expando.jsapiTarget.parentElement.parentElement);
             this.$content = this.$bar.next();
-            this.$bar.click(function() {
+            this.$bar.click(function(event) {
+                event.stopPropagation();
                 self.$content.toggle();
             });
 
@@ -100,6 +104,7 @@ var TagBar = (function () {
     }
     
     TagBar.prototype.createButton = function(type, title, text, subject, value, expire) {
+        const self = this;
 
         let $element = null;
         switch (type) {
@@ -107,9 +112,9 @@ var TagBar = (function () {
             case 'link' : $element = $("<a title='"+title+"' href='javascript:void 0'>["+text+"]</a>");
         }
         if (type !== 'text') {
-            $element.click(function() {
+            $element.click(function(event) {
+                event.stopPropagation();
                 self.BuildAndSubmitBinaryTrust(subject, value, expire);
-                return false;
             });
         }
 
@@ -120,7 +125,7 @@ var TagBar = (function () {
     }
 
     TagBar.prototype.BuildAndSubmitBinaryTrust = function(subject, value, expire) {
-        var self = this;
+        const self = this;
         var package = this.subjectService.BuildBinaryTrust(subject, value, null, expire);
         this.packageBuilder.SignPackage(package);
         $.notify("Updating trust", 'information');
@@ -175,11 +180,11 @@ var TagBar = (function () {
     }
 
     // Static methods
-    TagBar.bind = function(expando, subject, settings, packageBuilder, subjectService) {
+    TagBar.bind = function(expando, subject, settings, packageBuilder, subjectService, trustchainService) {
         const id = expando.id;
         let instance = this.instances[id];
         if(!instance) {
-            instance = new TagBar(subject, settings, packageBuilder, subjectService);
+            instance = new TagBar(subject, settings, packageBuilder, subjectService, trustchainService);
             this.instances[id] = instance;
         }
 
