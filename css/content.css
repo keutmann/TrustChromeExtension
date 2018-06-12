@@ -17,3 +17,14 @@
 .yellow {
 	color: yellow;
 }
+
+.trustIcon {
+    float: left;
+    margin-right: 0px;
+    height: 13px;
+    width: 13px;
+    margin-top: 0px;
+    cursor: pointer;
+    background-size: 13px;
+    display: inline-block;
+}
