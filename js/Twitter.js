@@ -380,7 +380,6 @@ settingsController.loadSettings(function (settings) {
     var trustchainService = new TrustchainService(settings);
     var twitterService = new DTP.TwitterService(settings);
     var profileRepository = new DTP.ProfileRepository(settings, localStorage);
-    //var profileView = new DTP.ProfileView();
 
     var twitter = new DTP.Twitter(settings, packageBuilder, subjectService, trustchainService, twitterService, profileRepository);
 
