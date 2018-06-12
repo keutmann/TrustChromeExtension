@@ -1,11 +1,9 @@
-/*
-Profile data
+var DTP = {};
 
-Public key
-Signature
-(Message is twitter name)
-*/
-var DTP;
+DTP.trace = function (message) {
+    console.log(message);
+};
+
 (function (DTP) {
 
     DTP.ProfileRepository = (function () {
@@ -13,40 +11,20 @@ var DTP;
             // No serializable
             Object.defineProperty(this, 'settings', { value: settings, writable: true });
             Object.defineProperty(this, 'storage', { value: storage, writable: false });
-
-            this.profileCount = 0;
-            this.profiles = [];
-
-            this.replacer = function (key, value) {
-                    if (key === 'profiles') {
-                        return Object.keys(this.profiles).map(x => this.profiles[x]);
-                    }
-                    return value;
-                };
-
-            this.reviver = function (key, value) {
-                    if (key === 'profiles') {
-                        let profiles = [];
-                        for (let item of value) {
-                            profiles[item.screen_name] = item;
-                        }
-                        return profiles;
-                    }
-                    return value;
-                };
         }
     
 
-        ProfileRepository.prototype.getCacheKey = function() {
-            return 'ProfileRepository'+this.settings.address58;
+        ProfileRepository.prototype.getCacheKey = function(screen_name) {
+            return 'Twitter'+this.settings.address58+screen_name;
         }
 
         ProfileRepository.prototype.getProfile = function(screen_name) {
-            return this.profiles[screen_name];
+            var data = this.storage.getItem(this.getCacheKey(screen_name));
+            return JSON.parse(data);
         }
 
         ProfileRepository.prototype.setProfile = function(profile) {
-            return this.profiles[profile.screen_name] = profile;
+            this.storage.setItem(this.getCacheKey(profile.screen_name), JSON.stringify(profile));
         }
 
         ProfileRepository.prototype.ensureProfile = function(screen_name) {
@@ -54,52 +32,13 @@ var DTP;
             if(!model) {
                 model = new DTP.Profile(screen_name);
                 this.setProfile(model);
+                DTP.trace('Profile '+ model.screen_name +' created');
             }
             return model;
         }
 
-        ProfileRepository.prototype.load = function() {
-            if (!this.settings.address58)
-                return;
-
-            let data = this.storage.getItem(this.getCacheKey());
-            if(!data) {
-                this.profiles = [];
-                return;
-            }
-            let obj = this.parse(data);
-            this.profiles = obj.profiles;
-        }
-
-        ProfileRepository.prototype.save = function() {
-            if (!this.settings.address58)
-                return;
-
-            let keysCount = Object.keys(this.profiles).length;
-            if(this.profileCount >= keysCount)
-                return;
-            
-            this.profileCount = keysCount;
-            let data = this.toString();
-            this.storage.setItem(this.getCacheKey(), data);
-            return data;
-        }
-
-        ProfileRepository.prototype.toString = function() {
-            return JSON.stringify(this, this.replacer);
-        }
-
-        ProfileRepository.prototype.parse = function(data) {
-            return JSON.parse(this, this.reviver);
-        }
-
-
         ProfileRepository.prototype.update = function(settings) {
-            let old = this.settings.address58;
             this.settings = settings;
-            if (old != this.settings.address58) {
-                this.load();
-            }
         }
 
 
@@ -111,8 +50,6 @@ var DTP;
             this.model = model;
             this.view = view;
             this.view.controller = this;
-            this.domElements = []; // Where the profile is being displayed
-            this.domRendered = false;
         }
 
         ProfileController.prototype.render = function(element) {
@@ -122,16 +59,12 @@ var DTP;
                 return;
             }
             
-            for (let e of this.domElements) {
-                // Render each element
-                this.view.renderElement(e);
-            }
+            // for (let e of this.domElements) {
+            //     // Render each element
+            //     this.view.renderElement(e);
+            // }
         }
-
-        ProfileController.prototype.addElement = function(element) {
-            this.domElements.push(element);
-        }
-        
+       
         ProfileController.prototype.trust = function() {
         }
 
@@ -142,7 +75,7 @@ var DTP;
         }
 
         // Model will usually be a deserialized neutral object
-        ProfileController.ensure = function(model) {
+        ProfileController.addTo = function(model) {
             if (!model.controller) {
                 let view = new DTP.ProfileView();
                 let controller = new DTP.ProfileController(model, view);
@@ -321,9 +254,8 @@ var DTP;
                 let screen_name = element.attributes["data-screen-name"].value;
                 let profile = self.profileRepository.ensureProfile(screen_name, self.profileView);
 
-                DTP.ProfileController.ensure(profile);
+                DTP.ProfileController.addTo(profile);
 
-                profile.controller.addElement(element);
                 profile.controller.render(element);
             }
         }
@@ -335,7 +267,6 @@ var DTP;
 
         Twitter.prototype.ready = function (element) {
             let self = this;
-            this.profileRepository.load();
 
             $(element).ready(function () {
                 var tweets = self.getTweets();
@@ -347,7 +278,7 @@ var DTP;
                                 
                 DTP.ProfileController.bindEvents(element);
                 
-                console.log(self.profileRepository.save());
+                //console.log(self.profileRepository.save());
 
                 // $(".ProfileTweet-action--favorite").each(function () {
                 //     if ($(this).attr("check") == null) {
@@ -367,8 +298,12 @@ var DTP;
                 // })
             });
 
-            //$(element).on('DOMNodeInserted', function (e) {
-              //  self.processElement(e.target);
+            $(element).on('DOMNodeInserted', function (e) {
+                let tweets = $(e.target).find('.tweet.js-stream-tweet');
+                tweets.each(function(i, element) {
+                    self.processElement(element);
+                });
+                
 
                 //$(document).bind('DOMNodeInserted', function(e) {
                 // if ($(e.target).find('.ProfileTweet-action--favorite')) {
@@ -386,7 +321,7 @@ var DTP;
                 //     }
 
                 // }
-            //});
+            });
 
             //$(element).on('click', '.trustIcon', function (event) {
                 //self.getProfile();
@@ -451,36 +386,3 @@ settingsController.loadSettings(function (settings) {
 
     twitter.ready(document);
 });
-
-
-/*
-var Twitter = (function() {
-	function Twitter(item) {
-  	this.item = item;
-  }
-
-	Twitter.prototype.getName = function() {
-  	return this.item.name;
-  }
-
-	return Twitter;
-}());
-
-
-var namesArr = [{ name:'Ole' }, {name:'Sofie'}, {name:'Geo'}];
-var namesString = JSON.stringify(namesArr);
-console.log(namesString);
-
-var arr = JSON.parse(namesString);
-
-for (let item of arr) {
-  //item.prototype = Twitter.prototype
-  //Object.setPrototypeOf(item, Twitter.prototype);
-  let t = new Twitter(item);
-  Object.defineProperty(item, 'controller', { value: t });
-	console.log(item.controller.getName());
-}
-
-let namesString2 = JSON.stringify(namesArr);
-console.log(namesString2);
-*/
