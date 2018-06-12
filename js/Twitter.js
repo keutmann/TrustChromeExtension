@@ -10,14 +10,32 @@ var DTP;
 
     DTP.ProfileRepository = (function () {
         function ProfileRepository(settings, storage) { 
-
             // No serializable
             Object.defineProperty(this, 'settings', { value: settings, writable: true });
             Object.defineProperty(this, 'storage', { value: storage, writable: false });
 
             this.profileCount = 0;
             this.profiles = [];
+
+            this.replacer = function (key, value) {
+                    if (key === 'profiles') {
+                        return Object.keys(this.profiles).map(x => this.profiles[x]);
+                    }
+                    return value;
+                };
+
+            this.reviver = function (key, value) {
+                    if (key === 'profiles') {
+                        let profiles = [];
+                        for (let item of value) {
+                            profiles[item.screen_name] = item;
+                        }
+                        return profiles;
+                    }
+                    return value;
+                };
         }
+    
 
         ProfileRepository.prototype.getCacheKey = function() {
             return 'ProfileRepository'+this.settings.address58;
@@ -31,13 +49,12 @@ var DTP;
             return this.profiles[profile.screen_name] = profile;
         }
 
-        ProfileRepository.prototype.ensureProfile = function(screen_name, view) {
+        ProfileRepository.prototype.ensureProfile = function(screen_name) {
             let model = this.getProfile(screen_name);
             if(!model) {
-                model = new Profile(screen_name);
+                model = new DTP.Profile(screen_name);
                 this.setProfile(model);
             }
-            Profile.bind(model, view);
             return model;
         }
 
@@ -50,7 +67,7 @@ var DTP;
                 this.profiles = [];
                 return;
             }
-            let obj = JSON.parse(data);
+            let obj = this.parse(data);
             this.profiles = obj.profiles;
         }
 
@@ -63,9 +80,19 @@ var DTP;
                 return;
             
             this.profileCount = keysCount;
-            this.storage.setItem(this.getCacheKey(), JSON.stringify(this));
-
+            let data = this.toString();
+            this.storage.setItem(this.getCacheKey(), data);
+            return data;
         }
+
+        ProfileRepository.prototype.toString = function() {
+            return JSON.stringify(this, this.replacer);
+        }
+
+        ProfileRepository.prototype.parse = function(data) {
+            return JSON.parse(this, this.reviver);
+        }
+
 
         ProfileRepository.prototype.update = function(settings) {
             let old = this.settings.address58;
@@ -83,6 +110,7 @@ var DTP;
         function ProfileController(model, view) { 
             this.model = model;
             this.view = view;
+            this.view.controller = this;
             this.domElements = []; // Where the profile is being displayed
             this.domRendered = false;
         }
@@ -90,29 +118,15 @@ var DTP;
         ProfileController.prototype.render = function(element) {
             if(element) {
                 // Render the current element
-                this.renderElement(element);
+                this.view.renderElement(element);
                 return;
             }
             
             for (let e of this.domElements) {
                 // Render each element
-                this.renderElement(e);
+                this.view.renderElement(e);
             }
         }
-
-        ProfileController.prototype.renderElement = function(element) {
-            var $element = $(element);
-            if($element.attr('rendered') == null) {
-                $element.attr('rendered', 'true');
-                let $anchor = $element.find(this.view.Anchor);
-                $anchor.after(this.view.Buttons);
-            }
-            else {            
-                // Update element
-
-            }
-        }
-
 
         ProfileController.prototype.addElement = function(element) {
             this.domElements.push(element);
@@ -127,11 +141,33 @@ var DTP;
         ProfileController.prototype.neutral = function() {
         }
 
+        // Model will usually be a deserialized neutral object
+        ProfileController.ensure = function(model) {
+            if (!model.controller) {
+                let view = new DTP.ProfileView();
+                let controller = new DTP.ProfileController(model, view);
+                // Make sure that this property will no be serialized by using Object.defineProperty
+                Object.defineProperty(model, 'controller', { value: controller });
+            }
+        }
+
+        ProfileController.bindEvents = function(element) {
+            $(element).on('click', '.trustIcon', function (event) {
+            });
+
+            $(element).on('click', '.distrustIcon', function (event) {
+            });
+
+            $(element).on('click', '.neutralIcon', function (event) {
+            });
+        }
+
         return ProfileController;
     }());
 
     DTP.ProfileView = (function () {
-        function ProfileView() {
+        function ProfileView(controller) {
+            this.controller = controller;
             this.checkIconUrl = chrome.extension.getURL("img/check13.gif");
             this.Anchor = '.ProfileTweet-action--favorite';
             this.Buttons = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
@@ -139,11 +175,24 @@ var DTP;
             '<span class="u-hiddenVisually">Block</span></div></button></div>';
         }
 
+        
+        ProfileView.prototype.renderElement = function(element) {
+            var $element = $(element);
+            if($element.attr('rendered') == null) {
+                $element.attr('rendered', 'true');
+                let $anchor = $element.find(this.Anchor);
+                $anchor.after(this.Buttons);
+            }
+            else {            
+                // Update element
+
+            }
+        }
         return ProfileView;
     }());
 
 
-    var Profile = (function () {
+    DTP.Profile = (function () {
         function Profile(screen_name) { 
             this.screen_name = screen_name;
 
@@ -151,13 +200,6 @@ var DTP;
             this.networkScore = 0;
         }
 
-        // Model will usually be a deserialized neutral object
-        Profile.bind = function(model, view) {
-            if (!model.controller) {
-                // Make sure that this property will no be serialized by using Object.defineProperty
-                Object.defineProperty(model, 'controller', { value: new DTP.ProfileController(model, view) });
-            }
-        }
         return Profile;
     }());
 
@@ -256,7 +298,7 @@ var DTP;
     
 
     DTP.Twitter = (function ($) {
-        function Twitter(settings, packageBuilder, subjectService, trustchainService, twitterService, profileRepository, profileView) {
+        function Twitter(settings, packageBuilder, subjectService, trustchainService, twitterService, profileRepository) {
             var self = this;
             self.OwnerPrefix = "[#owner_]";
             self.settings = settings;
@@ -266,14 +308,24 @@ var DTP;
             self.trustchainService = trustchainService;
             self.twitterService = twitterService;
             self.profileRepository = profileRepository;
-            self.profileView = profileView;
-
+  
             self.queryResult = {};
 
             self.authenticity_token = $('.authenticity_token')[0].value;
             self.authtoken = $('.auth-token').val();
 
             self.checkIconUrl = chrome.extension.getURL("img/check13.gif");
+
+            
+            self.processElement = function(element) { // Element = dom element
+                let screen_name = element.attributes["data-screen-name"].value;
+                let profile = self.profileRepository.ensureProfile(screen_name, self.profileView);
+
+                DTP.ProfileController.ensure(profile);
+
+                profile.controller.addElement(element);
+                profile.controller.render(element);
+            }
         }
 
         Twitter.prototype.getTweets = function() {
@@ -289,16 +341,14 @@ var DTP;
                 var tweets = self.getTweets();
 
                 tweets.each(function(i, element) {
-                    let screen_name = element.attributes["data-screen-name"].value;
-                    let profile = self.profileRepository.ensureProfile(screen_name, self.profileView);
-                    
-                    profile.controller.addElement(element);
-                    profile.controller.render(element);
+                    self.processElement(element);
                 });
 
-                self.profileRepository.save();
-                let data = JSON.stringify(self.profileRepository, null, 2);
-                console.log(data);
+                                
+                DTP.ProfileController.bindEvents(element);
+                
+                console.log(self.profileRepository.save());
+
                 // $(".ProfileTweet-action--favorite").each(function () {
                 //     if ($(this).attr("check") == null) {
                 //         $(this).after('<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
@@ -317,7 +367,9 @@ var DTP;
                 // })
             });
 
-            $(element).on('DOMNodeInserted', function (e) {
+            //$(element).on('DOMNodeInserted', function (e) {
+              //  self.processElement(e.target);
+
                 //$(document).bind('DOMNodeInserted', function(e) {
                 // if ($(e.target).find('.ProfileTweet-action--favorite')) {
                 //     if ($(e.target).find('.ProfileTweet-action--favorite').attr("check") == null) {
@@ -334,7 +386,7 @@ var DTP;
                 //     }
 
                 // }
-            });
+            //});
 
             //$(element).on('click', '.trustIcon', function (event) {
                 //self.getProfile();
@@ -393,9 +445,9 @@ settingsController.loadSettings(function (settings) {
     var trustchainService = new TrustchainService(settings);
     var twitterService = new DTP.TwitterService(settings);
     var profileRepository = new DTP.ProfileRepository(settings, localStorage);
-    var profileView = new DTP.ProfileView();
+    //var profileView = new DTP.ProfileView();
 
-    var twitter = new DTP.Twitter(settings, packageBuilder, subjectService, trustchainService, twitterService, profileRepository, profileView);
+    var twitter = new DTP.Twitter(settings, packageBuilder, subjectService, trustchainService, twitterService, profileRepository);
 
     twitter.ready(document);
 });
