@@ -6,14 +6,14 @@
   "author": "Trustchain",
 
   "icons": {
-    "16": "img/icon16.png",
-    "48": "img/icon48.png",
-    "128": "img/icon128.png"
+    "16": "img/DTP16a.png",
+    "48": "img/DTP48a.png",
+    "128": "img/DTP128a.png"
   },
   "browser_action": {
     "default_icon": {
-      "19": "img/icon48.png",
-      "38": "img/icon48.png"
+      "19": "img/DTP48a.png",
+      "38": "img/DTP48a.png"
     },
     "default_popup": "extensionpopup.html"
   },
@@ -30,7 +30,7 @@
     {
       "matches": [ "*://*.reddit.com/*" ],
       "css": [
-        "lib/bootstrap/dist/css/bootstrap.min.css"
+        "lib/bootstrap/dist/css/bootstrap.css"
       ],
       "js": [
         "lib/jquery/jquery-2.0.3.min.js",
@@ -52,7 +52,6 @@
     {
       "matches": [ "*://*.twitter.com/*" ],
       "css": [
-        "lib/bootstrap/dist/css/bootstrap.min.css",
         "css/content.css"
       ],
       "js": [

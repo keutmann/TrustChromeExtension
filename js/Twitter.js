@@ -101,25 +101,57 @@ DTP.trace = function (message) {
     DTP.ProfileView = (function () {
         function ProfileView(controller) {
             this.controller = controller;
-            this.checkIconUrl = chrome.extension.getURL("img/check13.gif");
+            //this.checkIconUrl = chrome.extension.getURL("img/check13.gif");
             this.Anchor = '.ProfileTweet-action--favorite';
-            this.Buttons = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
-            '<div class="IconContainer js-tooltip" ><span class="Icon Icon--medium"><a class="trustIcon js-tooltip" data-original-title="Block" style="background-image: url(' + this.checkIconUrl + ')" title="Block"></a></span>' +
-            '<span class="u-hiddenVisually">Block</span></div></button></div>';
         }
 
         
         ProfileView.prototype.renderElement = function(element) {
             var $element = $(element);
+            let $anchor = $element.find(this.Anchor);
             if($element.attr('rendered') == null) {
                 $element.attr('rendered', 'true');
-                let $anchor = $element.find(this.Anchor);
-                $anchor.after(this.Buttons);
-            }
-            else {            
-                // Update element
 
+                $anchor.after(this.createButton("Neutral", "neutralIconPassive", "neutral"));
+                $anchor.after(this.createButton("Distrust", "distrustIconPassive", "distrust"));
+                $anchor.after(this.createButton("Trust", "trustIconPassive", "trust"));
             }
+
+
+            if (this.controller.model.networkScore > 0) {
+                $anchor.parent().find('.trust').removeClass("trustIconPassive").addClass("trustIconActive");
+                $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
+                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            } 
+
+            if (this.controller.model.networkScore == 0) {
+                $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
+                $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
+                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            }
+
+            if (this.controller.model.networkScore < 0) {
+                $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
+                $anchor.parent().find('.distrust').removeClass("trustIconPassive").addClass("distrustIconActive");
+                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            }
+
+            if (this.controller.model.personalScore != 0) {
+                $anchor.parent().find('.neutral').removeClass("distrustIconPassive").addClass("trustIconActive");
+            }
+        } 
+
+
+
+
+        ProfileView.prototype.createButton = function(text, iconClass, type) {
+            //colorClass = colorClass || "iconTwitterColor";
+            let html = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
+            '<div class="IconContainer js-tooltip" >'+
+            '<span class="Icon Icon--medium"><a class="trustIcon '+ type +' js-tooltip '+  iconClass +'" data-original-title="'+text+'" title="'+text+'"></a></span>' +
+            '<span class="u-hiddenVisually">'+text+'</span>'+
+            '</div></button></div>';
+            return $(html);
         }
         return ProfileView;
     }());
@@ -129,8 +161,8 @@ DTP.trace = function (message) {
         function Profile(screen_name) { 
             this.screen_name = screen_name;
 
-            this.personalScore = 0;
-            this.networkScore = 0;
+            this.personalScore = 1;
+            this.networkScore = -1;
         }
 
         return Profile;
@@ -247,7 +279,7 @@ DTP.trace = function (message) {
             self.authenticity_token = $('.authenticity_token')[0].value;
             self.authtoken = $('.auth-token').val();
 
-            self.checkIconUrl = chrome.extension.getURL("img/check13.gif");
+            //self.checkIconUrl = chrome.extension.getURL("img/check13.gif");
 
             
             self.processElement = function(element) { // Element = dom element
@@ -261,7 +293,7 @@ DTP.trace = function (message) {
         }
 
         Twitter.prototype.getTweets = function() {
-            var tweets = $('.tweet.js-stream-tweet');
+            var tweets = $('js-stream-tweet');
             return tweets;
         }
 
@@ -299,11 +331,31 @@ DTP.trace = function (message) {
             });
 
             $(element).on('DOMNodeInserted', function (e) {
+                let classObj = e.target.attributes['class'];
+                if (!classObj) 
+                    return;
+
+                // if(classObj.value.indexOf('ProfileTweet-action') >= 0)
+                //     return;
+
+                if(classObj.value.indexOf('stream-item') < 0 
+                && classObj.value.indexOf('PermalinkOverlay-body') < 0)
+                    return;
+
+                console.log(e.target.nodeName + ' class: ' + classObj.value);
+
+                let permaTweets = $(e.target).find('.tweet.permalink-tweet');
+                permaTweets.each(function(i, element) {
+                    self.processElement(element);
+                });
+                
                 let tweets = $(e.target).find('.tweet.js-stream-tweet');
+                'tweet permalink-tweet js-actionable-user js-actionable-tweet js-original-tweet'
                 tweets.each(function(i, element) {
                     self.processElement(element);
                 });
                 
+
 
                 //$(document).bind('DOMNodeInserted', function(e) {
                 // if ($(e.target).find('.ProfileTweet-action--favorite')) {

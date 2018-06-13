@@ -1,6 +1,14 @@
-.trusticon {
-	margin-left: 3px;
+/* .trust {
+    
 }
+
+.distrust {
+    
+}
+
+.neutral {
+    
+} */
 
 .blue {
     color: blue;
@@ -27,4 +35,32 @@
     cursor: pointer;
     background-size: 13px;
     display: inline-block;
+}
+
+.iconTwitterColor {
+    color: rgb(136,153,166)
+}
+
+.trustIconPassive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Trust24p.png');
+}
+
+.trustIconActive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Trust24a.png');
+}
+
+.distrustIconPassive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Distrust24p.png');
+}
+
+.distrustIconActive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Distrust24a.png');
+}
+
+.neutralIconPassive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Neutral24p.png');
+}
+
+.neutralIconActive {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Neutral24a.png');
 }
