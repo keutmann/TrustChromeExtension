@@ -11,6 +11,7 @@ DTP.trace = function (message) {
             // No serializable
             Object.defineProperty(this, 'settings', { value: settings, writable: true });
             Object.defineProperty(this, 'storage', { value: storage, writable: false });
+            Object.defineProperty(this, 'profiles', { value: {}, writable: false });
         }
     
 
@@ -19,11 +20,18 @@ DTP.trace = function (message) {
         }
 
         ProfileRepository.prototype.getProfile = function(screen_name) {
+            let profile = this.profiles[screen_name];
+            if(profile)
+                return profile;
+
             var data = this.storage.getItem(this.getCacheKey(screen_name));
-            return JSON.parse(data);
+            profile = JSON.parse(data);
+            this.setProfile(profile);
+            return profile;
         }
 
         ProfileRepository.prototype.setProfile = function(profile) {
+            this.profiles[profile.screen_name] = profile;
             this.storage.setItem(this.getCacheKey(profile.screen_name), JSON.stringify(profile));
         }
 
@@ -46,11 +54,36 @@ DTP.trace = function (message) {
     }());
 
     DTP.ProfileController = (function () {
-        function ProfileController(model, view) { 
+        function ProfileController(model, view, twitterService) { 
             this.model = model;
             this.view = view;
             this.view.controller = this;
+            this.twitterService = twitterService;
+            this.time = 0;
         }
+
+        // Update data for the profile
+        ProfileController.prototype.update = function() {
+            let deferred = $.Deferred();
+            let self = this;
+
+            if(self.model.DTP) {
+                deferred.resolve(self.model);
+
+            } else {
+                self.twitterService.getProfileDTP(self.model.screen_name).then((dtp) => {
+                    self.model.DTP = dtp;
+                    if(dtp != null) {
+                        self.model.DTP.valid = ProfileController.verifyDTPsignature(dtp, self.model.screen_name);
+                    }
+
+                    deferred.resolve(self.model);
+                });
+            }
+
+            return deferred;
+        }
+
 
         ProfileController.prototype.render = function(element) {
             if(element) {
@@ -66,33 +99,61 @@ DTP.trace = function (message) {
         }
        
         ProfileController.prototype.trust = function() {
+            let deferred = $.Deferred();
+            DTP.trace("Profile trust!");
+            deferred.resolve();
+            return deffered;
         }
 
         ProfileController.prototype.distrust = function() {
+            DTP.trace("Profile distrust!");
         }
 
-        ProfileController.prototype.neutral = function() {
-        }
+        // ProfileController.prototype.neutral = function() {
+        // }
 
         // Model will usually be a deserialized neutral object
-        ProfileController.addTo = function(model) {
+        ProfileController.addTo = function(model, twitterService) {
             if (!model.controller) {
                 let view = new DTP.ProfileView();
-                let controller = new DTP.ProfileController(model, view);
+                let controller = new DTP.ProfileController(model, view, twitterService);
                 // Make sure that this property will no be serialized by using Object.defineProperty
                 Object.defineProperty(model, 'controller', { value: controller });
             }
         }
 
-        ProfileController.bindEvents = function(element) {
+        ProfileController.bindEvents = function(element, profileRepository) {
             $(element).on('click', '.trustIcon', function (event) {
+                let element = this;
+                $(element).addClass('trustSpinner24');
+                let screen_name = ProfileController.getParentScreenName(element);
+                ProfileController.loadProfile(screen_name, profileRepository).then(function(profile) {
+                    if(element.classList.contains('trust')) {
+                        profile.controller.trust().then(RemoveSpinner);
+                    }
+
+                    if(element.classList.contains('distrust')) {
+                        profile.controller.distrust().then(RemoveSpinner);
+                    }
+                });
             });
 
-            $(element).on('click', '.distrustIcon', function (event) {
-            });
+            function RemoveSpinner() {
+                $(element).removeClass('trustSpinner24');
+            }
+        }
 
-            $(element).on('click', '.neutralIcon', function (event) {
-            });
+        ProfileController.getParentScreenName = function(element)  {
+            return $(element).closest('div[data-screen-name]').attr("data-screen-name");
+        }
+
+        ProfileController.verifyDTPsignature = function(dtp, message) {
+            return tce.bitcoin.message.verify(dtp.address, dtp.signature, message);
+        }
+
+        ProfileController.loadProfile = function(screen_name, profileRepository) {
+            let profile = profileRepository.getProfile(screen_name);
+            return profile.controller.update();
         }
 
         return ProfileController;
@@ -112,7 +173,7 @@ DTP.trace = function (message) {
             if($element.attr('rendered') == null) {
                 $element.attr('rendered', 'true');
 
-                $anchor.after(this.createButton("Neutral", "neutralIconPassive", "neutral"));
+                //$anchor.after(this.createButton("Neutral", "neutralIconPassive", "neutral"));
                 $anchor.after(this.createButton("Distrust", "distrustIconPassive", "distrust"));
                 $anchor.after(this.createButton("Trust", "trustIconPassive", "trust"));
             }
@@ -121,24 +182,24 @@ DTP.trace = function (message) {
             if (this.controller.model.networkScore > 0) {
                 $anchor.parent().find('.trust').removeClass("trustIconPassive").addClass("trustIconActive");
                 $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
-                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             } 
 
             if (this.controller.model.networkScore == 0) {
                 $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
                 $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
-                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             }
 
             if (this.controller.model.networkScore < 0) {
                 $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
                 $anchor.parent().find('.distrust').removeClass("trustIconPassive").addClass("distrustIconActive");
-                $anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             }
 
-            if (this.controller.model.personalScore != 0) {
-                $anchor.parent().find('.neutral').removeClass("distrustIconPassive").addClass("trustIconActive");
-            }
+            // if (this.controller.model.personalScore != 0) {
+            //     $anchor.parent().find('.neutral').removeClass("distrustIconPassive").addClass("trustIconActive");
+            // }
         } 
 
 
@@ -165,6 +226,12 @@ DTP.trace = function (message) {
             this.networkScore = -1;
         }
 
+        Profile.LoadCurrent = function() {
+            Profile.Current = JSON.parse($("#init-data")[0].value);
+        }
+
+        Profile.Current = null;
+
         return Profile;
     }());
 
@@ -173,61 +240,83 @@ DTP.trace = function (message) {
             this.settings = settings;
         }
 
-        TwitterService.prototype.getProfile = function () {
-            let url = 'https://twitter.com/search?f=tweets&vertical=default&q=DTP%20keutmann';
+        TwitterService.prototype.getProfileDTP = function (screen_name) {
+            let deferred = $.Deferred();
+            this.getData('/search?l=&q=%23DTP%20Address%20Signature%20from%3A'+ screen_name +'&src=typd', 'html').then((html) => {
+                let content = html.findSubstring('<div class="js-tweet-text-container">', '</div>');
+                if(content == null) {
+                    deferred.resolve(null);
+                }
+   
+                let text = $(content).text();
+                text = text.replace("\n", ' ');
+
+                let result = {
+                    address: text.findSubstring('Address:', ' ', true, true),
+                    signature: text.findSubstring('Signature:', ' ', true, true)
+                }
+                deferred.resolve(result);
+                
+            }).fail((error) => deferred.fail(error));
+
+            return deferred;
+        }
+
+        TwitterService.prototype.getData = function (path, dataType) {
+            let deferred = $.Deferred();
+            let self = this;
+            let url = TwitterService.BaseUrl+path;
+            dataType = dataType || "json";
 
             $.ajax({
                 type: "GET",
                 url: url,
-                //data: data,
-                //contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 headers: {
                     'accept': 'application/json, text/javascript, */*; q=0.01',
                     'X-Requested-With': 'XMLHttpRequest',
                     'x-twitter-active-user': 'yes'
                 },
-                dataType: 'json',
-            }).done(function (msg, textStatus, jqXHR) {
-                //resolve = msg;
-                console.log(msg);
-                //deferred.resolve(resolve);
+                dataType: dataType,
+            }).done(function (data, textStatus, jqXHR) {
+                deferred.resolve(data);
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                if (jqXHR.status == 404 || errorThrown == 'Not Found') {
-                    var msg = 'Error 404: Server was not found.';
-                    //alert('Error 404: Server ' + server + ' was not found.');
-                    console.log(msg);
-                }
-                else {
-                    var msg = textStatus + " : " + errorThrown;
-                    if (jqXHR.responseJSON)
-                        msg = JSON.stringify(jqXHR.responseJSON.ExceptionMessage, null, 2);
-
-                    console.log(msg);
-                    alert(msg);
-                }
+                self.errorHandler(jqXHR, textStatus, errorThrown);
+                deferred.fail();
             });
+            return deferred.promise();
         }
 
 
-        TwitterService.prototype.updateProfile = function () {
+        // TwitterService.prototype.updateProfile = function () {
+        //     let self = this;
+
+        //     let address = self.settings.address;
+        //     //let nameBuffer = new tce.buffer.Buffer("test", 'utf8');
+        //     let signatureBuffer = tce.bitcoin.Bitcoin.sign(self.settings.keyPair, "test");
+        //     let signature = signatureBuffer.toString('base64');
+        //     //let nameHash = tce.bitcoin.crypto.hash256(nameBuffer);
+        //     //let signatureBuffer = self.settings.keyPair.signCompact(nameHash);
+        //     //let signature = signatureBuffer.toString('base58');
+
+        //     let description = '#DTP+Address:' + address + '+Signature:' + signature;
+
+        //     let url = TwitterService.BaseUrl+'/i/profiles/update'; //?description=MyTime:'+today.toISOString() ;
+        //     let data = 'page_context=me&section_context=profile&user%5Bdescription%5D=' + description;
+        //     this.postData(url, data);
+
+        // }
+
+        TwitterService.prototype.postData = function (path, data) {
             let self = this;
+            var deferred = $.Deferred();
 
-            let address = self.settings.address58;
-            let nameBuffer = new tce.buffer.Buffer("@test", 'utf8');
-            let nameHash = tce.bitcoin.crypto.hash256(nameBuffer);
-            let signatureBuffer = self.settings.keyPair.signCompact(nameHash);
-            let signature = signatureBuffer.toString('base58');
+            let url = TwitterService.BaseUrl + path;
+            let postData = 'authenticity_token=' + DTP.Profile.Current.formAuthenticityToken + '&' + data;
 
-            let description = 'DTP+adr:' + address + '+sig:' + signature;
-
-            let today = new Date();
-            let url = TwitterService.BaseUrl+'/i/profiles/update'; //?description=MyTime:'+today.toISOString() ;
-            let data = 'authenticity_token=' + self.authenticity_token + '&page_context=me&section_context=profile&user%5Bdescription%5D=' + description;
-            //url += data; 
             $.ajax({
                 type: "POST",
                 url: url,
-                data: data,
+                data: postData,
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 headers: {
                     'accept': 'application/json, text/javascript, */*; q=0.01',
@@ -236,27 +325,52 @@ DTP.trace = function (message) {
                 },
                 dataType: 'json',
             }).done(function (msg, textStatus, jqXHR) {
-                //resolve = msg;
-                console.log(msg);
-                //deferred.resolve(resolve);
+                deferred.resolve(msg);
             }).fail(function (jqXHR, textStatus, errorThrown) {
-                if (jqXHR.status == 404 || errorThrown == 'Not Found') {
-                    var msg = 'Error 404: Server was not found.';
-                    //alert('Error 404: Server ' + server + ' was not found.');
-                    console.log(msg);
-                }
-                else {
-                    var msg = textStatus + " : " + errorThrown;
-                    if (jqXHR.responseJSON)
-                        msg = JSON.stringify(jqXHR.responseJSON.ExceptionMessage, null, 2);
-
-                    console.log(msg);
-                    alert(msg);
-                }
+                self.errorHandler(jqXHR, textStatus, errorThrown);
+                deferred.fail();
             });
+            return deferred.promise();
         }
 
+        TwitterService.prototype.errorHandler = function(jqXHR, textStatus, errorThrown) {
+            if (jqXHR.status == 404 || errorThrown == 'Not Found') {
+                var msg = 'Error 404: Server was not found.';
+                DTP.trace(msg);
+            }
+            else {
+                var msg = textStatus + " : " + errorThrown;
+                if (jqXHR.responseJSON)
+                    msg = JSON.stringify(jqXHR.responseJSON.ExceptionMessage, null, 2);
+
+                DTP.trace(msg);
+            }
+        }
+
+
+
         TwitterService.BaseUrl = 'https://twitter.com';
+
+        /* Known api
+        i/profiles/update | Update the profile of the current user.
+        i/related_users/22551796 | Gets html for related users
+        i/timeline
+        i/toast_poll
+        /i/profiles/popup?user_id=[ID]&wants_hovercard=true&_=[some id]
+        /i/user/follow
+        /i/profiles/show/[screen_name]/timeline/tweets?include_available_features=1&include_entities=1&max_position=723202757822304256&reset_error_state=false
+
+        'https://twitter.com/search?q={term}&src=typd'
+        
+        https://twitter.com/account/redirect_by_id/{id}
+
+        /search?l=&q=%23DTP%20from%3Akeutmann&src=typd
+        https://twitter.com/search?l=&q=%23DTP%20address%20signature%20from%3Akeutmann&src=typd
+        https://twitter.com/search?l=&q=#DTP address signature from:keutmann&src=typd
+        //let url = 'https://twitter.com/search?f=tweets&vertical=default&q=DTP%20keutmann';
+
+        
+        */
 
         return TwitterService;
     }(jQuery));
@@ -276,9 +390,10 @@ DTP.trace = function (message) {
   
             self.queryResult = {};
 
-            self.authenticity_token = $('.authenticity_token')[0].value;
-            self.authtoken = $('.auth-token').val();
+            // self.authenticity_token = $('.authenticity_token')[0].value;
+            // self.authtoken = $('.auth-token').val();
 
+            //self.currentProfile.formAuthenticityToken
             //self.checkIconUrl = chrome.extension.getURL("img/check13.gif");
 
             
@@ -286,14 +401,14 @@ DTP.trace = function (message) {
                 let screen_name = element.attributes["data-screen-name"].value;
                 let profile = self.profileRepository.ensureProfile(screen_name, self.profileView);
 
-                DTP.ProfileController.addTo(profile);
+                DTP.ProfileController.addTo(profile, self.twitterService);
 
                 profile.controller.render(element);
             }
         }
 
         Twitter.prototype.getTweets = function() {
-            var tweets = $('js-stream-tweet');
+            var tweets = $('.tweet.js-stream-tweet');
             return tweets;
         }
 
@@ -301,6 +416,9 @@ DTP.trace = function (message) {
             let self = this;
 
             $(element).ready(function () {
+
+                DTP.Profile.LoadCurrent();
+
                 var tweets = self.getTweets();
 
                 tweets.each(function(i, element) {
@@ -308,7 +426,7 @@ DTP.trace = function (message) {
                 });
 
                                 
-                DTP.ProfileController.bindEvents(element);
+                DTP.ProfileController.bindEvents(element, self.profileRepository);
                 
                 //console.log(self.profileRepository.save());
 
@@ -375,9 +493,14 @@ DTP.trace = function (message) {
                 // }
             });
 
-            //$(element).on('click', '.trustIcon', function (event) {
-                //self.getProfile();
+            $(element).on('click', '.trust', function (event) {
+                let screen_name = $(this).closest('div[data-screen-name]').attr("data-screen-name");
 
+                let profile = self.profileRepository.getProfile(screen_name);
+                profile.controller.update().then(function(model) {
+                    DTP.trace(model); 
+                });
+    
                 // event.preventDefault();
                 // if(!(location.href.indexOf("following") > 0) &&  !(location.href.indexOf("followers") >0) ){
                 //     if($(this).parents(".content").length > 0){
@@ -414,7 +537,7 @@ DTP.trace = function (message) {
                 // var message = $('<div class="msg error-message" style="display: none;">');
                 // message.append('User <a class="link" href="https://twitter.com/'+screen_name+'">@'+screen_name+'</a> has been blocked.');
                 // message.appendTo($('body')).fadeIn(300).delay(3000).fadeOut(500);
-            //});
+            });
 
         }
 

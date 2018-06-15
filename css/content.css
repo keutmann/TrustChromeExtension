@@ -64,3 +64,7 @@
 .neutralIconActive {
     background-image: url('chrome-extension://__MSG_@@extension_id__/img/Neutral24a.png');
 }
+
+.trustSpinner24 {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/img/Spinner24px.gif') !important;
+}

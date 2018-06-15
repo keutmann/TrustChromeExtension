@@ -46,6 +46,30 @@ String.prototype.base64ToBuffer = function() {
     return new tce.buffer.Buffer(this.toString(), 'base64');
 }
 
+String.prototype.findSubstring = function(startText, endText, returnInner, ignoreCase) {
+    let start = ignoreCase ? this.toLocaleLowerCase().indexOf(startText.toLocaleLowerCase()) : this.indexOf(startText);
+    if(start < 0)
+        return null;
+
+    if(returnInner) {
+        start += startText.length;
+    }
+    
+    let end = ignoreCase ? this.toLocaleLowerCase().indexOf(endText.toLocaleLowerCase(), start) : this.indexOf(endText, start);
+    if(end < 0) {
+        end = this.length;
+    }
+
+    if(!returnInner && end < this.length) {
+        end += endText.length;
+    }
+
+    return this.substring(start, end);
+}
+
+
+
+
 function GetTargetAddress(target) {
     var address = (target.id) ? GetAddress(target.id, target.sig, target.content) :
                 GetIDFromContent(target.content);
