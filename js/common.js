@@ -55,6 +55,8 @@ String.prototype.findSubstring = function(startText, endText, returnInner, ignor
         start += startText.length;
     }
     
+    
+    let end = $.inArray(endText, )
     let end = ignoreCase ? this.toLocaleLowerCase().indexOf(endText.toLocaleLowerCase(), start) : this.indexOf(endText, start);
     if(end < 0) {
         end = this.length;

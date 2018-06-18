@@ -25,6 +25,10 @@ DTP.trace = function (message) {
                 return profile;
 
             var data = this.storage.getItem(this.getCacheKey(screen_name));
+            if(!data) {
+                return null;
+            } 
+
             profile = JSON.parse(data);
             this.setProfile(profile);
             return profile;
@@ -38,7 +42,8 @@ DTP.trace = function (message) {
         ProfileRepository.prototype.ensureProfile = function(screen_name) {
             let model = this.getProfile(screen_name);
             if(!model) {
-                model = new DTP.Profile(screen_name);
+                let address = DTP.Profile.getAddress(screen_name);
+                model = new DTP.Profile(screen_name, address);
                 this.setProfile(model);
                 DTP.trace('Profile '+ model.screen_name +' created');
             }
@@ -49,16 +54,19 @@ DTP.trace = function (message) {
             this.settings = settings;
         }
 
-
         return ProfileRepository;
     }());
 
     DTP.ProfileController = (function () {
-        function ProfileController(model, view, twitterService) { 
+        function ProfileController(model, twitter, profileRepository) { 
             this.model = model;
             this.view = view;
             this.view.controller = this;
-            this.twitterService = twitterService;
+            this.twitter = twitter;
+            this.twitterService = twitter.twitterService;
+            this.profileRepository = twitter.profileRepository;
+            this.trustHandler = null;
+            this.domElement = null;
             this.time = 0;
         }
 
@@ -75,6 +83,7 @@ DTP.trace = function (message) {
                     self.model.DTP = dtp;
                     if(dtp != null) {
                         self.model.DTP.valid = ProfileController.verifyDTPsignature(dtp, self.model.screen_name);
+                        self.profileRepository.setProfile(self.model);
                     }
 
                     deferred.resolve(self.model);
@@ -85,38 +94,54 @@ DTP.trace = function (message) {
         }
 
 
-        ProfileController.prototype.render = function(element) {
-            if(element) {
+        ProfileController.prototype.render = function() {
+            if(self.domElement) {
+                if(self.trustHandler) {
+                    let ownerAddress = (self.model.DTP) ? self.model.DTP.address: "";
+                    self.model.result = self.trustHandler.CalculateBinaryTrust2(self.model.address, ownerAddress);
+                }
                 // Render the current element
-                this.view.renderElement(element);
+                this.view.renderElement(self.domElement);
                 return;
             }
-            
-            // for (let e of this.domElements) {
-            //     // Render each element
-            //     this.view.renderElement(e);
-            // }
         }
        
         ProfileController.prototype.trust = function() {
+            const self = this;
             let deferred = $.Deferred();
             DTP.trace("Profile trust!");
-            deferred.resolve();
-            return deffered;
+            this.twitter.BuildAndSubmitBinaryTrust(subject, true, 0).then(function(result) {
+                self.controller.render();
+                deferred.resolve();
+            });
+            return deferred;
         }
 
         ProfileController.prototype.distrust = function() {
-            DTP.trace("Profile distrust!");
+            const self = this;
+            let deferred = $.Deferred();
+            DTP.trace("Profile trust!");
+            this.twitter.BuildAndSubmitBinaryTrust(subject, false, 0).then(function(result) {
+                self.controller.render();
+                deferred.resolve();
+            });
+            return deferred;
         }
 
-        // ProfileController.prototype.neutral = function() {
-        // }
+        ProfileController.prototype.untrust = function() {
+            let deferred = $.Deferred();
+            DTP.trace("Profile untrust!");
+            deferred.resolve();
+            return deferred;
+        }
+
 
         // Model will usually be a deserialized neutral object
-        ProfileController.addTo = function(model, twitterService) {
+        ProfileController.addTo = function(model, twitterService, profileRepository, domElement) {
             if (!model.controller) {
                 let view = new DTP.ProfileView();
-                let controller = new DTP.ProfileController(model, view, twitterService);
+                let controller = new DTP.ProfileController(model, view, twitterService, profileRepository);
+                controller.domElement = domElement;
                 // Make sure that this property will no be serialized by using Object.defineProperty
                 Object.defineProperty(model, 'controller', { value: controller });
             }
@@ -124,23 +149,24 @@ DTP.trace = function (message) {
 
         ProfileController.bindEvents = function(element, profileRepository) {
             $(element).on('click', '.trustIcon', function (event) {
-                let element = this;
-                $(element).addClass('trustSpinner24');
-                let screen_name = ProfileController.getParentScreenName(element);
+                let button = this;
+                $(button).addClass('trustSpinner24');
+                let screen_name = ProfileController.getParentScreenName(button);
                 ProfileController.loadProfile(screen_name, profileRepository).then(function(profile) {
-                    if(element.classList.contains('trust')) {
+                    if(button.classList.contains('trust')) {
                         profile.controller.trust().then(RemoveSpinner);
                     }
 
-                    if(element.classList.contains('distrust')) {
+                    if(button.classList.contains('distrust')) {
                         profile.controller.distrust().then(RemoveSpinner);
                     }
                 });
+
+                function RemoveSpinner() {
+                    $(button).removeClass('trustSpinner24');
+                }
             });
 
-            function RemoveSpinner() {
-                $(element).removeClass('trustSpinner24');
-            }
         }
 
         ProfileController.getParentScreenName = function(element)  {
@@ -164,18 +190,31 @@ DTP.trace = function (message) {
             this.controller = controller;
             //this.checkIconUrl = chrome.extension.getURL("img/check13.gif");
             this.Anchor = '.ProfileTweet-action--favorite';
+            this.fullNameGroup = '.FullNameGroup';
         }
 
         
         ProfileView.prototype.renderElement = function(element) {
             var $element = $(element);
             let $anchor = $element.find(this.Anchor);
+            let $fullNameGroup = $element.find(this.fullNameGroup);
             if($element.attr('rendered') == null) {
+                let time = this.controller.model.time;
+
                 $element.attr('rendered', 'true');
 
                 //$anchor.after(this.createButton("Neutral", "neutralIconPassive", "neutral"));
                 $anchor.after(this.createButton("Distrust", "distrustIconPassive", "distrust"));
                 $anchor.after(this.createButton("Trust", "trustIconPassive", "trust"));
+
+                if(this.controller.model.DTP && this.controller.model.DTP.valid) {
+                    $fullNameGroup.prepend( ProfileView.createIdenticon(this.controller.model));
+                }
+
+                if(time != this.controller.model.time) {
+                    // New data to be saved!
+                    this.controller.profileRepository.setProfile(this.controller.model);
+                }
             }
 
 
@@ -202,11 +241,64 @@ DTP.trace = function (message) {
             // }
         } 
 
+        ProfileView.createTweetDTPButton = function() {
+            let $editButton = $('.ProfileNav-list .edit-button');
+            if($editButton.length == 0)
+                return;
+
+            let $tweetDTP = $editButton.parent().find('button.tweet-dtp');
+            if($tweetDTP.length > 0)
+                return;
+           
+            $tweetDTP = $(
+                '<button type="button" class="EdgeButton EdgeButton--tertiary dtpUserAction-Button tweet-dtp">'+
+                '<span class="button-text">Tweet DTP</span>'+
+                '</button>'
+            );
+            
+            $editButton.before($tweetDTP);
+        }
+        
+        ProfileView.showMessage = function(message) {
+            var pop = $('#message-drawer');
+            pop.find('.message-text').text(message);
+            pop.attr("style", "").removeClass('hidden').delay(3000).fadeOut(function() {
+                pop.addClass('hidden').attr("style", "top: -40px;");
+            });
+        }
+
+        ProfileView.createIdenticon = function(profile) {
+            if(!profile.DTP.data) {
+                profile.DTP.data = new Identicon(profile.DTP.address, {margin:0.1, size:16, format: 'svg'}).toString();
+                profile.time = Date.now();
+            }
+            let $icon = $('<a title="'+profile.screen_name+'" href="javascript:void 0"><img src="data:image/svg+xml;base64,' + profile.DTP.data + '" class="dtpIdenticon"></a>');
+            // $alink.data("subject", subject);
+            // $alink.click(function() {
+            //     var opt = {
+            //         command:'openDialog',
+            //         url: 'trustlist.html',
+            //         data: $(this).data("subject")
+            //     };
+            //     opt.w = 800;
+            //     opt.h = 800;
+            //     var wLeft = window.screenLeft ? window.screenLeft : window.screenX;
+            //     var wTop = window.screenTop ? window.screenTop : window.screenY;
+        
+            //     opt.left = Math.floor(wLeft + (window.innerWidth / 2) - (opt.w / 2));
+            //     opt.top = Math.floor(wTop + (window.innerHeight / 2) - (opt.h / 2));
+                
+            //     chrome.runtime.sendMessage(opt);
+            //     return false;
+            // });
+            // this.container.appendChild($alink[0]);
+            return $icon;
+        }
+    
 
 
 
         ProfileView.prototype.createButton = function(text, iconClass, type) {
-            //colorClass = colorClass || "iconTwitterColor";
             let html = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
             '<div class="IconContainer js-tooltip" >'+
             '<span class="Icon Icon--medium"><a class="trustIcon '+ type +' js-tooltip '+  iconClass +'" data-original-title="'+text+'" title="'+text+'"></a></span>' +
@@ -219,12 +311,19 @@ DTP.trace = function (message) {
 
 
     DTP.Profile = (function () {
-        function Profile(screen_name) { 
+        function Profile(screen_name, address) { 
             this.screen_name = screen_name;
-
-            this.personalScore = 1;
-            this.networkScore = -1;
+            this.address = address;
+            this.personalScore = 0;
+            this.networkScore = 0;
         }
+
+        Profile.getAddress = function(screen_name) {
+            let hash = tce.bitcoin.crypto.sha256(new tce.buffer.Buffer(screen_name, 'UTF8'));
+            let address = tce.bitcoin.ECPair.getAddress(hash);
+            return address;
+        }
+
 
         Profile.LoadCurrent = function() {
             Profile.Current = JSON.parse($("#init-data")[0].value);
@@ -287,6 +386,10 @@ DTP.trace = function (message) {
         }
 
 
+        TwitterService.prototype.sendTweet = function (data) {
+            return this.postData('/i/tweet/create', data);
+        }
+
         // TwitterService.prototype.updateProfile = function () {
         //     let self = this;
 
@@ -311,12 +414,13 @@ DTP.trace = function (message) {
             var deferred = $.Deferred();
 
             let url = TwitterService.BaseUrl + path;
-            let postData = 'authenticity_token=' + DTP.Profile.Current.formAuthenticityToken + '&' + data;
+            //let postData = 'authenticity_token=' + DTP.Profile.Current.formAuthenticityToken + '&' + data;
+            data.authenticity_token = DTP.Profile.Current.formAuthenticityToken;
 
             $.ajax({
                 type: "POST",
                 url: url,
-                data: postData,
+                data: data,
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 headers: {
                     'accept': 'application/json, text/javascript, */*; q=0.01',
@@ -351,27 +455,6 @@ DTP.trace = function (message) {
 
         TwitterService.BaseUrl = 'https://twitter.com';
 
-        /* Known api
-        i/profiles/update | Update the profile of the current user.
-        i/related_users/22551796 | Gets html for related users
-        i/timeline
-        i/toast_poll
-        /i/profiles/popup?user_id=[ID]&wants_hovercard=true&_=[some id]
-        /i/user/follow
-        /i/profiles/show/[screen_name]/timeline/tweets?include_available_features=1&include_entities=1&max_position=723202757822304256&reset_error_state=false
-
-        'https://twitter.com/search?q={term}&src=typd'
-        
-        https://twitter.com/account/redirect_by_id/{id}
-
-        /search?l=&q=%23DTP%20from%3Akeutmann&src=typd
-        https://twitter.com/search?l=&q=%23DTP%20address%20signature%20from%3Akeutmann&src=typd
-        https://twitter.com/search?l=&q=#DTP address signature from:keutmann&src=typd
-        //let url = 'https://twitter.com/search?f=tweets&vertical=default&q=DTP%20keutmann';
-
-        
-        */
-
         return TwitterService;
     }(jQuery));
     
@@ -389,21 +472,21 @@ DTP.trace = function (message) {
             self.profileRepository = profileRepository;
   
             self.queryResult = {};
-
-            // self.authenticity_token = $('.authenticity_token')[0].value;
-            // self.authtoken = $('.auth-token').val();
-
-            //self.currentProfile.formAuthenticityToken
-            //self.checkIconUrl = chrome.extension.getURL("img/check13.gif");
-
+            self.waiting = false;
+            self.profilesToQuery= [];
             
+
             self.processElement = function(element) { // Element = dom element
                 let screen_name = element.attributes["data-screen-name"].value;
                 let profile = self.profileRepository.ensureProfile(screen_name, self.profileView);
 
-                DTP.ProfileController.addTo(profile, self.twitterService);
+                DTP.ProfileController.addTo(profile, self, element);
+                
+                if(profile.time == 0) {
+                    self.profilesToQuery.push(profile);
+                }
 
-                profile.controller.render(element);
+                profile.controller.render();
             }
         }
 
@@ -411,6 +494,47 @@ DTP.trace = function (message) {
             var tweets = $('.tweet.js-stream-tweet');
             return tweets;
         }
+
+        Twitter.prototype.queryDTP = function () {
+            let self = this;
+            if(self.profilesToQuery.length == 0) {
+                return;
+            }
+
+            let profiles = self.profilesToQuery;
+            self.profilesToQuery = [];
+
+            this.trustchainService.Query(profiles, window.location.hostname).then(function(result) {
+                if (result || result.status == "Success") {
+                    let th = new TrustHandler(result.data.results, self.settings);
+                    for (let profile of profiles) {
+                        profile.controller.trustHandler = th;
+                        profile.controller.render();
+                    }
+                }
+                else {
+                    console.log(result.message);
+                }
+            });
+        }
+
+        Twitter.prototype.BuildAndSubmitBinaryTrust = function(subject, value, expire) {
+            const self = this;
+            var package = this.subjectService.BuildBinaryTrust(subject, value, null, expire);
+            this.packageBuilder.SignPackage(package);
+            $.notify("Updating trust", 'information');
+            this.trustchainService.PostTrust(package).done(function(trustResult){
+                DTP.trace("Posting package is a "+trustResult.status.toLowerCase());
+    
+                if (self.updateCallback) {
+                    self.updateCallback(subject);
+                }
+    
+            }).fail(function(trustResult){ 
+                DTP.trace("Adding trust failed: " +trustResult.message,"fail");
+            });
+        }
+        
 
         Twitter.prototype.ready = function (element) {
             let self = this;
@@ -427,40 +551,16 @@ DTP.trace = function (message) {
 
                                 
                 DTP.ProfileController.bindEvents(element, self.profileRepository);
-                
+                DTP.ProfileView.createTweetDTPButton();
                 //console.log(self.profileRepository.save());
-
-                // $(".ProfileTweet-action--favorite").each(function () {
-                //     if ($(this).attr("check") == null) {
-                //         $(this).after('<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
-                //             '<div class="IconContainer js-tooltip" ><span class="Icon Icon--medium"><a class="trustIcon js-tooltip" data-original-title="Block" style="background-image: url(' + self.checkIconUrl + ')" title="Block"></a></span>' +
-                //             '<span class="u-hiddenVisually">Block</span></div></button></div>');
-                //     }
-                //     $(this).attr('check', 'true');
-
-                // })
-
-                // $(".user-actions-follow-button").each(function () {
-                //     if ($(this).attr("check") == null) {
-                //         $(this).after('<span style="padding: 0 0 0.25em 0.2em;" class="user-actions-follow-button"><a class="trustIcon js-tooltip" data-original-title="Block" style="background-image: url(' + self.checkIconUrl + ')" title="Block"></a></span>');
-                //     }
-                //     $(this).attr('check', 'true');
-                // })
             });
+
+
 
             $(element).on('DOMNodeInserted', function (e) {
                 let classObj = e.target.attributes['class'];
                 if (!classObj) 
                     return;
-
-                // if(classObj.value.indexOf('ProfileTweet-action') >= 0)
-                //     return;
-
-                if(classObj.value.indexOf('stream-item') < 0 
-                && classObj.value.indexOf('PermalinkOverlay-body') < 0)
-                    return;
-
-                console.log(e.target.nodeName + ' class: ' + classObj.value);
 
                 let permaTweets = $(e.target).find('.tweet.permalink-tweet');
                 permaTweets.each(function(i, element) {
@@ -468,38 +568,49 @@ DTP.trace = function (message) {
                 });
                 
                 let tweets = $(e.target).find('.tweet.js-stream-tweet');
-                'tweet permalink-tweet js-actionable-user js-actionable-tweet js-original-tweet'
+                //'tweet permalink-tweet js-actionable-user js-actionable-tweet js-original-tweet'
                 tweets.each(function(i, element) {
                     self.processElement(element);
                 });
-                
 
+                if(!self.waiting) {
+                    self.waiting = true;
+                    setTimeout(function() {
+                        DTP.trace("DOMNodeInserted done!");
+                        DTP.ProfileView.createTweetDTPButton();
 
-                //$(document).bind('DOMNodeInserted', function(e) {
-                // if ($(e.target).find('.ProfileTweet-action--favorite')) {
-                //     if ($(e.target).find('.ProfileTweet-action--favorite').attr("check") == null) {
-                //         $(e.target).find('.ProfileTweet-action--favorite').not('.u-hiddenVisually').after('<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" ><div class="IconContainer js-tooltip" ><span class="Icon Icon--medium"><a class="trustIcon js-tooltip" data-original-title="Block" style="background-image: url(' + self.checkIconUrl + ')" title="Block"></a></span><span class="u-hiddenVisually">Block</span></div></button></div>');
-                //         $(e.target).find('.ProfileTweet-action--favorite').attr('check', 'true');
-                //     }
-                // }
-                // if ($(e.target).find('.user-actions-follow-button')) {
-                //     if ($(e.target).find('.user-actions-follow-button').attr("check") == null) {
-                //         if (!($(e.target).find(".dismiss").length > 0) && !($(e.target).parents("body").find("#profile-hover-container").children().length > 0)) {
-                //             $(e.target).find('.user-actions-follow-button').not('.u-hiddenVisually').after('<span style="padding: 0 0 0.25em 0.2em;" class="user-actions-follow-button"><a class="trustIcon js-tooltip" data-original-title="Block" style="background-image: url(' + self.checkIconUrl + ')" title="Block "></a></span>');
-                //             $(e.target).find('.user-actions-follow-button').attr('check', 'true');
-                //         }
-                //     }
-
-                // }
+                        self.queryDTP();
+                        self.waiting = false;
+                    }, 100);
+                }
             });
 
-            $(element).on('click', '.trust', function (event) {
-                let screen_name = $(this).closest('div[data-screen-name]').attr("data-screen-name");
+            $(element).on('click', '.tweet-dtp', function (event) {
+                let address = self.settings.address;
+                let signature = tce.bitcoin.message.sign(self.settings.keyPair, DTP.Profile.Current.screenName);
+    
+                let status = 'Digital Trust Protocol #DTP \rAddress:' + address + ' \rSignature:' + signature.toString('base64');
+                let data = {
+                    batch_mode:'off',
+                    is_permalink_page:false,
+                    place_id: !0,
+                    status: status 
+                };
 
-                let profile = self.profileRepository.getProfile(screen_name);
-                profile.controller.update().then(function(model) {
-                    DTP.trace(model); 
+                self.twitterService.sendTweet(data).then(function(result) {
+                    DTP.Profile.Current.DTP = DTP.Profile.Current.DTP || {};
+                    DTP.Profile.Current.DTP.tweet_id = result.tweet_id;
+                    DTP.ProfileView.showMessage("DTP tweet created");
                 });
+            });
+
+            // $(element).on('click', '.trust', function (event) {
+            //     let screen_name = $(this).closest('div[data-screen-name]').attr("data-screen-name");
+
+            //     let profile = self.profileRepository.getProfile(screen_name);
+            //     profile.controller.update().then(function(model) {
+            //         DTP.trace(model); 
+            //     });
     
                 // event.preventDefault();
                 // if(!(location.href.indexOf("following") > 0) &&  !(location.href.indexOf("followers") >0) ){
@@ -537,11 +648,9 @@ DTP.trace = function (message) {
                 // var message = $('<div class="msg error-message" style="display: none;">');
                 // message.append('User <a class="link" href="https://twitter.com/'+screen_name+'">@'+screen_name+'</a> has been blocked.');
                 // message.appendTo($('body')).fadeIn(300).delay(3000).fadeOut(500);
-            });
+            //});
 
         }
-
-        Twitter.blockIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAABICAYAAACeNle5AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo2OTMzOTcxOThFNTJFNzExOTQwMUUxOTRFMjk5OUQ4OCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpDMzdCMzRBQjUyOTExMUU3QTRCNjgzRTg5MDI1OTg3NyIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpDMzdCMzRBQTUyOTExMUU3QTRCNjgzRTg5MDI1OTg3NyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M2IChXaW5kb3dzKSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjY5MzM5NzE5OEU1MkU3MTE5NDAxRTE5NEUyOTk5RDg4IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjY5MzM5NzE5OEU1MkU3MTE5NDAxRTE5NEUyOTk5RDg4Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+1btqcgAABDNJREFUeNrsmElIVVEcxt/T1MzQKLDUpkXUoszSiiYaXPWsZ5PRtpAkpGgRYQUZ4aKSgkgRGoyWkZnh2C5bZJDlVC1qE5oaDQRGFj5T+w58Nw63O5x73xOl7oEfR8+775zvnXuG///zj42N+SZTifJNsuIJ8gSFW6ZofxScPD9hIq5fOPW3IAclFewFm0A6mAOSwAD4DDrBY1AN+l3PkEJZAc6CIIg2+DyJLKLgK6AWnAMdkVxDU8FV8ALsAiPgITgMMsAM4GedwXbx+S8+L75Xxn7CFpQPPoCjYBTcBAtBAFwDXXxVPtZdbA/wuRv83hHwFKSFIyifHYpfPgg2gEMUqFLEcwVgDXjLV/4EzHUjKB5c5qsQJQGcBrEuNkE7WAdawQJQz/4dCSrlAh2U2naCKpeivoIc8IbrrNSJoExQCIZBNmiSPssNQ9QXsJ/9FnIcJUFn2C52xjPuFL2oey5FdbLfKI5jKyiNAw6Bi2wLGYgKhiGqlP3nGu06vaDdbKsDn6R2TVRjBER9ZP9RHM9S0BbWjQYdhdiBXlS1C1ENrLfaCVrG+rlJR5qoBqlthwtRWv9L7QSlsO6x6EyI2mMg6r4DUe9145kKSpSuAZ9DUdsdiBrQjWcq6Jt0c/vGUVSSbjxTQdo9NV9x6jVR9TpRNTai5unGMxX0inWWgwUaYvwji8qxEbWK9Ws7Qc3Sr/S5EFWnE/XARFQO60d2gmoYv4jzJdmFqDydqICBqGSe0qP8zFJQH8POOFDk4lqwEhXH/0/wbzFOr8rlWkL1IkpcHkFRNVw7x9h/iept3wYqQAy4C2aFIapWJ6qZ/VZwHOUArYihwhLe8jNditqnE5XAQ7HIacT4g9dBN1gNWhgTuxElXs13/i+8n+Ps33GQ38vAvosz1cqMIkVRTAqfF9nGdM6MSBIqw0mDxK5bC8r5rMgi3jGMPcDMNVG6l9LZXsXnCvi9cma8lZHIXH9yx90CxTyj8ohV0c6ZErMFHG4q3c5YSMvtN0u5fSIvShFlvuQJPO65vVb6GaiXjYcT4vdMT0/QP+sxtvj9EyZivbSxJp3H+GfbK8yQncdodFIreYzyDE06j9FuhoStd4mDiQFu8z5TsfVSODsHuTQ6GNL0Wc2QlSDNY/TTScumX+S0rAR3wGLGVxv1sbTKK/M8Rs9jVPUY9Ys6jd7QMA0HzdaLZfQXkL5bx6gx5FDUbC7uGI7RZ7WoPY/R8xg9j9HzGP97j1H1pFYtsTwsg1JbEw/VkOQx9vCkFrd/r9VJPeEeo1GAlsnYZYTvusuFMLOZKqb5FU0jrE0lQJtQj9EshJ3GX5LB2drGIMvNTFUxZJEPxVTZ1lMJYT2P0UmiGM8YuJA/YIi7qIE5VzevgERu4yyeY0HuplGumSKzmVFNg4zSmWIXmautx+hWkD63j5jHKAv6LcAANVWyl69h+iIAAAAASUVORK5CYII=';
 
         return Twitter;
     }(jQuery));

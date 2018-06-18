@@ -37,6 +37,11 @@
     display: inline-block;
 }
 
+.dtpIdenticon {
+    margin-right: 3px;
+    vertical-align: middle;
+}
+
 .iconTwitterColor {
     color: rgb(136,153,166)
 }
@@ -67,4 +72,8 @@
 
 .trustSpinner24 {
     background-image: url('chrome-extension://__MSG_@@extension_id__/img/Spinner24px.gif') !important;
+}
+
+.dtpUserAction-Button {
+    margin-right: 5px;
 }
