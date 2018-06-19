@@ -82,8 +82,8 @@ var PackageBuilder = (function() {
     }
 
     PackageBuilder.prototype.SignTrust = function(trust) {
-        var id = (typeof trust.id === 'string') ? new tce.buffer.Buffer(trust.id, 'base64') : trust.id;
-        trust.issuer.signature = this.settings.keyPair.signCompact(id);
+        //trust.issuer.signature = this.settings.keyPair.signCompact(id);
+        trust.issuer.signature = tce.bitcoin.message.sign(this.settings.keyPair, trust.id.base64ToBuffer());
     }
 
     PackageBuilder.prototype.CalculateTrustId = function(trust) {

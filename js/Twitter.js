@@ -134,12 +134,10 @@ DTP.trace = function (message) {
 
         ProfileController.prototype.trustProfile = function(value, expire) {
             const self = this;
-            let deferred = $.Deferred();
-            this.buildAndSubmitBinaryTrust(self.profile, value, expire).then(function(result) {
+            return this.buildAndSubmitBinaryTrust(self.profile, value, expire).then(function(result) {
                 //self.controller.render();
-                deferred.resolve();
+                DTP.trace('TrustProfile done!');
             });
-            return deferred;
         }
 
         ProfileController.prototype.buildAndSubmitBinaryTrust = function(profile, value, expire) {
@@ -147,8 +145,8 @@ DTP.trace = function (message) {
             let package = this.host.subjectService.BuildBinaryTrust(profile, value, null, expire);
             this.host.packageBuilder.SignPackage(package);
             DTP.trace("Updating trust");
-            this.host.trustchainService.PostTrust(package).then(function(trustResult){
-                DTP.trace("Posting package is a "+trustResult.status.toLowerCase());
+            return this.host.trustchainService.PostTrust(package).then(function(trustResult){
+                DTP.trace("Posting package is a "+trustResult.status.toLowerCase()+ ' '+ trustResult.message);
     
                 // if (self.updateCallback) {
                 //     self.updateCallback(profile);
@@ -225,36 +223,48 @@ DTP.trace = function (message) {
         
         ProfileView.prototype.renderElement = function(element) {
             var $element = $(element);
-            let $anchor = $element.find(this.Anchor);
-            let $fullNameGroup = $element.find(this.fullNameGroup);
             if($element.attr('rendered') == null) {
                 $element.attr('rendered', 'true');
+                let $anchor = $element.find(this.Anchor);
 
-                //$anchor.after(this.createButton("Neutral", "neutralIconPassive", "neutral"));
-                $anchor.after(this.createButton("Distrust", "distrustIconPassive", "distrust"));
-                $anchor.after(this.createButton("Trust", "trustIconPassive", "trust"));
+                var bar = {
+                    trust: this.createButton("Trust", "trustIconPassive", "trust"),
+                    distrust: this.createButton("Distrust", "distrustIconPassive", "distrust"),
+                    untrust:this.createButton("Untrust", "untrustIconPassive", "untrust")
+                }
 
                 if(this.controller.profile.owner && this.controller.profile.owner.valid) {
-                    $fullNameGroup.prepend(ProfileView.createIdenticon(this.controller.profile));
+
+                    bar.$fullNameGroup = $element.find(this.fullNameGroup);
+                    bar.$fullNameGroup.prepend(ProfileView.createIdenticon(this.controller.profile));
                 }
+
+               
+                $anchor.after(bar.distrust.$html);
+                $anchor.after(bar.trust.$html);
+
+                bar.trust.$a.removeClass("trustIconPassive").addClass("trustIconActive");
+                bar.trust.$span.text('3');
+
             }
 
 
             if (this.controller.profile.networkScore > 0) {
-                $anchor.parent().find('.trust').removeClass("trustIconPassive").addClass("trustIconActive");
-                $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
+                //bar.trust.$a.removeClass("trustIconPassive").addClass("trustIconActive");
+
+                //$anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
                 //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             } 
 
             if (this.controller.profile.networkScore == 0) {
-                $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
-                $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
+                // $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
+                // $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
                 //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             }
 
             if (this.controller.profile.networkScore < 0) {
-                $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
-                $anchor.parent().find('.distrust').removeClass("trustIconPassive").addClass("distrustIconActive");
+                // $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
+                // $anchor.parent().find('.distrust').removeClass("trustIconPassive").addClass("distrustIconActive");
                 //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
             }
 
@@ -291,8 +301,10 @@ DTP.trace = function (message) {
 
         ProfileView.createIdenticon = function(profile) {
             if(!profile.owner.data) {
-                profile.owner.data = new Identicon(profile.owner.address.toAddress(), {margin:0.1, size:16, format: 'svg'}).toString();
+                let icon = new Identicon(profile.owner.address.toAddress(), {margin:0.1, size:16, format: 'svg'});
+                profile.owner.data = icon.toString();
                 profile.time = Date.now();
+                profile.controller.save();
             }
             let $icon = $('<a title="'+profile.screen_name+'" href="javascript:void 0"><img src="data:image/svg+xml;base64,' + profile.owner.data + '" class="dtpIdenticon"></a>');
             // $alink.data("subject", subject);
@@ -320,13 +332,25 @@ DTP.trace = function (message) {
 
 
 
-        ProfileView.prototype.createButton = function(text, iconClass, type) {
-            let html = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
+        ProfileView.prototype.createButton = function(text, iconClass, type, count) {
+            let number = count || "";
+            let html = '<div class="ProfileTweet-action ProfileTweet-action" style="min-width:40px">'+
+            '<button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton" type="button" >' +
             '<div class="IconContainer js-tooltip" >'+
             '<span class="Icon Icon--medium"><a class="trustIcon '+ type +' js-tooltip '+  iconClass +'" data-original-title="'+text+'" title="'+text+'"></a></span>' +
             '<span class="u-hiddenVisually">'+text+'</span>'+
-            '</div></button></div>';
-            return $(html);
+            '</div>'+
+            '<span class="ProfileTweet-actionCount">'+
+            '<span class="ProfileTweet-actionCountForPresentation" aria-hidden="true">'+ number +'</span>'+
+            '</span>'+
+            '</button></div>';
+
+            let $html = $(html);
+            return {
+                $html: $html,
+                $a: $("a", $html),
+                $span: $('.ProfileTweet-actionCountForPresentation', $html)
+            }
         }
         return ProfileView;
     }());
