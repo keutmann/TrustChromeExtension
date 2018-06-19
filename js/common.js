@@ -33,9 +33,10 @@ function ParseTrustMe(a) {
 }
 
 
-tce.buffer.Buffer.prototype.toJSON = function toJSON() {
+tce.buffer.Buffer.prototype.toJSON = function() {
     return this.toString('base64');
 }
+
 
 
 tce.buffer.Buffer.prototype.base64ToBuffer = function () {
@@ -45,6 +46,24 @@ tce.buffer.Buffer.prototype.base64ToBuffer = function () {
 String.prototype.base64ToBuffer = function() {
     return new tce.buffer.Buffer(this.toString(), 'base64');
 }
+
+
+tce.buffer.Buffer.prototype.toAddress = function () {
+    return tce.bitcoin.address.toBase58Check(this, 0x00);
+}
+
+String.prototype.toAddress = function() {
+    return this.base64ToBuffer().toAddress();
+}
+
+tce.buffer.Buffer.prototype.toBase64 = function () {
+    return this.toString('base64');
+}
+
+String.prototype.toBase64 = function() {
+    return this;
+}
+
 
 String.prototype.findSubstring = function(startText, endText, returnInner, ignoreCase) {
     let start = ignoreCase ? this.toLocaleLowerCase().indexOf(startText.toLocaleLowerCase()) : this.indexOf(startText);

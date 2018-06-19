@@ -47,7 +47,7 @@ var SubjectService = (function() {
         var trust = this.packageBuilder.CreateBinaryTrust(
             this.settings.publicKeyHash, 
             this.SCRIPT, 
-            target.address, 
+            target.address.base64ToBuffer(), 
             value, 
             note,
             target.scope,
@@ -57,8 +57,8 @@ var SubjectService = (function() {
         var package = this.packageBuilder.CreatePackage(trust);
 
         if(target.owner) {
-            var subjectAddress = new tce.buffer.Buffer(target.owner.address, 'HEX');
-
+            //var subjectAddress = new tce.buffer.Buffer(target.owner.address, 'HEX');
+            let subjectAddress = target.owner.address.base64ToBuffer();
             var ownerTrust = this.packageBuilder.CreateBinaryTrust(
                 this.settings.publicKeyHash, 
                 this.SCRIPT, 
