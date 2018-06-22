@@ -102,7 +102,7 @@ DTP.trace = function (message) {
                 return;
 
             let ownerAddress = (this.profile.owner) ? this.profile.owner.address.toBase64() : "";
-            this.profile.result = this.trustHandler.CalculateBinaryTrust2(this.profile.address.toBase64(), ownerAddress);
+            this.profile.result = this.trustHandler.CalculateBinaryTrust(this.profile.address.toBase64(), ownerAddress);
         }
 
 
@@ -148,6 +148,9 @@ DTP.trace = function (message) {
             return this.host.trustchainService.PostTrust(package).then(function(trustResult){
                 DTP.trace("Posting package is a "+trustResult.status.toLowerCase()+ ' '+ trustResult.message);
     
+                // Requery everything, as we have changed a trust
+                self.host.queryDTP(self.host.sessionProfiles);
+
                 // if (self.updateCallback) {
                 //     self.updateCallback(profile);
                 // }
@@ -222,12 +225,12 @@ DTP.trace = function (message) {
 
         
         ProfileView.prototype.renderElement = function(element) {
-            var $element = $(element);
-            if($element.attr('rendered') == null) {
-                $element.attr('rendered', 'true');
+            const $element = $(element);
+            let bar = $element.data('dtp_bar');
+            if(!bar) {
                 let $anchor = $element.find(this.Anchor);
 
-                var bar = {
+                bar = {
                     trust: this.createButton("Trust", "trustIconPassive", "trust"),
                     distrust: this.createButton("Distrust", "distrustIconPassive", "distrust"),
                     untrust:this.createButton("Untrust", "untrustIconPassive", "untrust")
@@ -240,37 +243,36 @@ DTP.trace = function (message) {
                 }
 
                
+                $anchor.after(bar.untrust.$html);
                 $anchor.after(bar.distrust.$html);
                 $anchor.after(bar.trust.$html);
+                bar.untrust.$html.hide();
 
-                bar.trust.$a.removeClass("trustIconPassive").addClass("trustIconActive");
-                bar.trust.$span.text('3');
-
+                $element.data('dtp_bar', bar);
             }
 
+            bar.trust.$a.removeClass("trustIconActive").addClass("trustIconPassive");
+            bar.trust.$span.text('');
+            bar.distrust.$a.removeClass("distrustIconActive").addClass("trustIconPassive");
+            bar.distrust.$span.text('');
 
-            if (this.controller.profile.networkScore > 0) {
-                //bar.trust.$a.removeClass("trustIconPassive").addClass("trustIconActive");
+            if(!this.controller.profile.result)
+                return;
 
-                //$anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
-                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            if (this.controller.profile.result.state > 0) {
+                bar.trust.$a.removeClass("trustIconPassive").addClass("trustIconActive");
+                bar.trust.$span.text(this.controller.profile.result.trust);
+
             } 
 
-            if (this.controller.profile.networkScore == 0) {
-                // $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
-                // $anchor.parent().find('.distrust').removeClass("distrustIconActive").addClass("trustIconPassive");
-                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            if (this.controller.profile.result.state < 0) {
+                bar.distrust.$a.removeClass("trustIconPassive").addClass("distrustIconActive");
+                bar.distrust.$span.text(this.controller.profile.result.distrust);
             }
 
-            if (this.controller.profile.networkScore < 0) {
-                // $anchor.parent().find('.trust').removeClass("trustIconActive").addClass("trustIconPassive");
-                // $anchor.parent().find('.distrust').removeClass("trustIconPassive").addClass("distrustIconActive");
-                //$anchor.parent().find('.neutral').removeClass("distrustIconActive").addClass("trustIconPassive");
+            if (this.controller.profile.result.direct) {
+                bar.untrust.$html.show();
             }
-
-            // if (this.controller.profile.personalScore != 0) {
-            //     $anchor.parent().find('.neutral').removeClass("distrustIconPassive").addClass("trustIconActive");
-            // }
         } 
 
         ProfileView.createTweetDTPButton = function() {
@@ -509,8 +511,6 @@ DTP.trace = function (message) {
             }
         }
 
-
-
         TwitterService.BaseUrl = 'https://twitter.com';
 
         return TwitterService;
@@ -532,6 +532,7 @@ DTP.trace = function (message) {
             self.queryResult = {};
             self.waiting = false;
             self.profilesToQuery= [];
+            self.sessionProfiles = [];
             
 
             self.processElement = function(element) { // Element = dom element
@@ -540,7 +541,8 @@ DTP.trace = function (message) {
 
                 DTP.ProfileController.addTo(profile, self, element);
                 
-                if(profile.controller.time == 0) {
+                self.sessionProfiles.push(profile); // All the profiles in the current page session
+                if(profile.controller.time == 0) { 
                     self.profilesToQuery.push(profile);
                 }
 
@@ -553,17 +555,15 @@ DTP.trace = function (message) {
             return tweets;
         }
 
-        Twitter.prototype.queryDTP = function () {
+        Twitter.prototype.queryDTP = function (profiles) {
             let self = this;
-            if(self.profilesToQuery.length == 0) {
+            if(!profiles || profiles.length == 0) {
                 return;
             }
 
-            let profiles = self.profilesToQuery;
-            self.profilesToQuery = [];
-
-            this.trustchainService.Query(profiles, window.location.hostname).then(function(result) {
+            return this.trustchainService.Query(profiles, window.location.hostname).then(function(result) {
                 if (result || result.status == "Success") {
+                    DTP.trace(JSON.stringify(result, null, 2));
                     let th = new TrustHandler(result.data.results, self.settings);
                     for (let profile of profiles) {
                         profile.controller.trustHandler = th;
@@ -571,7 +571,6 @@ DTP.trace = function (message) {
                         profile.controller.calculateTrust();
                         profile.controller.render();
                         profile.controller.save();
-
                     }
                 }
                 else {
@@ -640,7 +639,8 @@ DTP.trace = function (message) {
                         DTP.trace("DOMNodeInserted done!");
                         DTP.ProfileView.createTweetDTPButton();
 
-                        self.queryDTP();
+                        self.queryDTP(self.profilesToQuery);
+                        self.profilesToQuery = [];
                         self.waiting = false;
                     }, 100);
                 }

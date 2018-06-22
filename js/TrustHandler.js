@@ -36,10 +36,11 @@ var TrustHandler = (function() {
         var self = this;
         var result = {
             direct : false,
-            directValue: false,
-            isTrusted: 0,
-
+            directValue: undefined,
+            trust : 0,
+            distrust: 0,
         };
+
         var binaryTrustCount = 0;
         
         var subjectTrusts = self.subjects[subjectAddressBase64];
@@ -55,9 +56,9 @@ var TrustHandler = (function() {
                     binaryTrustCount ++;
 
                     if(trust.attributesObj.trust === true) 
-                        result.isTrusted++;
+                        result.trust++;
                     else
-                        result.isTrusted--;
+                        result.distrust++;
                                     // IssuerAddress is base64
                     if(trust.issuer.address == self.settings.publicKeyHashBase64)
                     {
@@ -67,10 +68,12 @@ var TrustHandler = (function() {
                 }
             }
         }
-        CalcTrust(subjectTrusts);   
         CalcTrust(ownerTrusts);
+        if(result.trust == 0 && result.distrust == 0)
+            CalcTrust(subjectTrusts);   
 
-        result.trustPercent = Math.floor((result.isTrusted * 100) / binaryTrustCount);
+        //result.trustPercent = Math.floor((result.isTrusted * 100) / binaryTrustCount);
+        result.state = result.trust - result.distrust;
 
         return result;
     }
@@ -116,7 +119,6 @@ var TrustHandler = (function() {
 
         return result;
     }
-
 
     return TrustHandler;
 }());

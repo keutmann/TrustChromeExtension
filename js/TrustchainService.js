@@ -16,6 +16,10 @@ var TrustchainService = (function() {
             var target = targets[key];
             var subject = { address: target.address };
             subjects.push(subject);
+            if(target.owner && target.owner.address) {
+                subject = { address: target.owner.address };
+                subjects.push(subject);
+            }
         }
     
         if(typeof scope === 'string')

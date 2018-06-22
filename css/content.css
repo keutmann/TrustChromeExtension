@@ -62,11 +62,11 @@
     background-image: url('chrome-extension://__MSG_@@extension_id__/img/Distrust24a.png');
 }
 
-.neutralIconPassive {
+.untrustIconPassive {
     background-image: url('chrome-extension://__MSG_@@extension_id__/img/Neutral24p.png');
 }
 
-.neutralIconActive {
+.untrustIconActive {
     background-image: url('chrome-extension://__MSG_@@extension_id__/img/Neutral24a.png');
 }
 
